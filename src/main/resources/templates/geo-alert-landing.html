@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+
+    <title th:text="#{geo.alert.landing.title}">Verify This Login - Passwordless Multi-Auth</title>
+
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+
+		.response-container {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+			padding: 40px;
+			width: 100%;
+			max-width: 600px;
+			text-align: center;
+		}
+
+		.icon {
+			font-size: 4rem;
+			margin-bottom: 20px;
+		}
+
+		h1 {
+			font-size: 2rem;
+			margin-bottom: 15px;
+			color: #333;
+		}
+
+		.message {
+			font-size: 1.1rem;
+			color: #666;
+			margin-bottom: 30px;
+			line-height: 1.6;
+		}
+
+		.details {
+			background: rgba(108, 99, 255, 0.08);
+			border: 1px solid rgba(108, 99, 255, 0.2);
+			border-radius: 10px;
+			padding: 20px;
+			margin: 30px 0;
+			text-align: left;
+		}
+
+		.details div {
+			display: flex;
+			justify-content: space-between;
+			padding: 8px 0;
+			color: #666;
+		}
+
+		.details dt {
+			font-weight: 600;
+			color: #333;
+		}
+
+		.action-buttons {
+			display: flex;
+			gap: 15px;
+			flex-wrap: wrap;
+			justify-content: center;
+			margin-top: 30px;
+		}
+
+		.btn {
+			padding: 15px 30px;
+			border: none;
+			border-radius: 12px;
+			font-size: 1rem;
+			font-weight: 600;
+			cursor: pointer;
+			text-decoration: none;
+			display: inline-block;
+			transition: all 0.3s ease;
+		}
+
+		.btn-primary {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+		}
+
+		.btn-danger {
+			background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+			color: white;
+		}
+
+		.btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+		}
+
+		.footer {
+			margin-top: 30px;
+			padding-top: 20px;
+			border-top: 1px solid #e5e7eb;
+			color: #666;
+			font-size: 0.9rem;
+		}
+	</style>
+</head>
+<body>
+	<div class="response-container">
+		<div class="icon">🌍</div>
+		<h1 th:text="#{geo.alert.landing.title}">Was this you?</h1>
+		<p class="message" th:text="#{geo.alert.landing.message}">
+			We detected a login to your account from a new location. Please confirm whether this was you.
+		</p>
+
+		<dl class="details">
+			<div>
+				<dt th:text="#{geo.alert.landing.previous}">Previous location</dt>
+				<dd th:text="${previousCountry}">-</dd>
+			</div>
+			<div>
+				<dt th:text="#{geo.alert.landing.current}">New location</dt>
+				<dd th:text="${currentCountry}">-</dd>
+			</div>
+			<div>
+				<dt th:text="#{geo.alert.landing.ip}">IP address</dt>
+				<dd th:text="${ipAddress}">-</dd>
+			</div>
+		</dl>
+
+		<!-- T5.3: State changes happen only via these CSRF-protected POST forms -->
+		<div class="action-buttons">
+			<form th:action="@{/geo-alert/confirm}" method="post">
+				<input type="hidden" name="token" th:value="${token}" />
+				<button type="submit" class="btn" th:classappend="${action == 'confirm'} ? 'btn-primary' : 'btn-danger'"
+						th:text="#{geo.alert.confirm.button}">Yes, it was me</button>
+			</form>
+			<form th:action="@{/geo-alert/deny}" method="post">
+				<input type="hidden" name="token" th:value="${token}" />
+				<button type="submit" class="btn" th:classappend="${action == 'deny'} ? 'btn-danger' : 'btn-primary'"
+						th:text="#{geo.alert.deny.button}">No, it wasn't me</button>
+			</form>
+		</div>
+
+		<div class="footer">
+			<p th:text="#{geo.alert.footer}">If you have any questions, please contact our security team.</p>
+			<p>&copy; 2024 Passwordless Multi-Auth. All rights reserved.</p>
+		</div>
+	</div>
+</body>
+</html>

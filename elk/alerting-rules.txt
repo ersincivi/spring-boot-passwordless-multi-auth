@@ -1,0 +1,306 @@
+# Elasticsearch Watcher Configuration for Security Alerts
+# This file contains alerting rules for security monitoring
+
+# High Priority Security Alert - Multiple Failed Login Attempts
+PUT _watcher/watch/high_failed_logins
+{
+  "trigger": {
+    "schedule": {
+      "interval": "1m"
+    }
+  },
+  "input": {
+    "search": {
+      "request": {
+        "search_type": "query_then_fetch",
+        "indices": ["security-audit-*"],
+        "body": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "audit.eventType": "LOGIN_FAILURE"
+                  }
+                },
+                {
+                  "range": {
+                    "@timestamp": {
+                      "gte": "now-5m"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "aggs": {
+            "failed_by_ip": {
+              "terms": {
+                "field": "source_ip",
+                "size": 10,
+                "min_doc_count": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "compare": {
+      "ctx.payload.hits.total": {
+        "gte": 5
+      }
+    }
+  },
+  "actions": {
+    "send_email": {
+      "email": {
+        "profile": "standard",
+        "to": ["security@yourcompany.com"],
+        "subject": "Security Alert: Multiple Failed Login Attempts Detected",
+        "body": {
+          "html": "
+            <h2>Security Alert: Multiple Failed Login Attempts</h2>
+            <p><strong>Alert Time:</strong> {{ctx.execution_time}}</p>
+            <p><strong>Total Failed Attempts:</strong> {{ctx.payload.hits.total}}</p>
+            <p><strong>Time Window:</strong> Last 5 minutes</p>
+            <h3>Top Offending IP Addresses:</h3>
+            <ul>
+            {{#ctx.payload.aggregations.failed_by_ip.buckets}}
+              <li>{{key}}: {{doc_count}} attempts</li>
+            {{/ctx.payload.aggregations.failed_by_ip.buckets}}
+            </ul>
+            <p>Please investigate these login attempts immediately.</p>
+          "
+        }
+      }
+    },
+    "log_alert": {
+      "logging": {
+        "level": "warn",
+        "text": "Security Alert: {{ctx.payload.hits.total}} failed login attempts detected in the last 5 minutes"
+      }
+    }
+  }
+}
+
+# Account Lockout Alert
+PUT _watcher/watch/account_lockout_alert
+{
+  "trigger": {
+    "schedule": {
+      "interval": "30s"
+    }
+  },
+  "input": {
+    "search": {
+      "request": {
+        "search_type": "query_then_fetch",
+        "indices": ["security-audit-*"],
+        "body": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "audit.eventType": "ACCOUNT_LOCKED"
+                  }
+                },
+                {
+                  "range": {
+                    "@timestamp": {
+                      "gte": "now-1m"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "compare": {
+      "ctx.payload.hits.total": {
+        "gte": 1
+      }
+    }
+  },
+  "actions": {
+    "immediate_notification": {
+      "email": {
+        "profile": "urgent",
+        "to": ["security@yourcompany.com", "admin@yourcompany.com"],
+        "subject": "URGENT: Account Lockout Detected",
+        "body": {
+          "html": "
+            <h2 style='color: red;'>URGENT: Account Lockout Alert</h2>
+            <p><strong>Alert Time:</strong> {{ctx.execution_time}}</p>
+            <p><strong>Number of Lockouts:</strong> {{ctx.payload.hits.total}}</p>
+            <h3>Affected Accounts:</h3>
+            <ul>
+            {{#ctx.payload.hits.hits}}
+              <li>User: {{_source.audit.userId}} | IP: {{_source.source_ip}} | Time: {{_source.@timestamp}}</li>
+            {{/ctx.payload.hits.hits}}
+            </ul>
+            <p style='color: red;'><strong>Immediate action required!</strong></p>
+          "
+        }
+      }
+    }
+  }
+}
+
+# Application Error Rate Alert
+PUT _watcher/watch/high_error_rate
+{
+  "trigger": {
+    "schedule": {
+      "interval": "2m"
+    }
+  },
+  "input": {
+    "search": {
+      "request": {
+        "search_type": "query_then_fetch",
+        "indices": ["application-logs-*"],
+        "body": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "log_level": "ERROR"
+                  }
+                },
+                {
+                  "range": {
+                    "@timestamp": {
+                      "gte": "now-10m"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "aggs": {
+            "errors_by_class": {
+              "terms": {
+                "field": "class_name",
+                "size": 5
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "compare": {
+      "ctx.payload.hits.total": {
+        "gte": 10
+      }
+    }
+  },
+  "actions": {
+    "notify_devops": {
+      "email": {
+        "profile": "standard",
+        "to": ["devops@yourcompany.com"],
+        "subject": "Application Alert: High Error Rate Detected",
+        "body": {
+          "html": "
+            <h2>Application Alert: High Error Rate</h2>
+            <p><strong>Alert Time:</strong> {{ctx.execution_time}}</p>
+            <p><strong>Total Errors:</strong> {{ctx.payload.hits.total}} in the last 10 minutes</p>
+            <h3>Errors by Class:</h3>
+            <ul>
+            {{#ctx.payload.aggregations.errors_by_class.buckets}}
+              <li>{{key}}: {{doc_count}} errors</li>
+            {{/ctx.payload.aggregations.errors_by_class.buckets}}
+            </ul>
+            <p>Please investigate the application health immediately.</p>
+          "
+        }
+      }
+    }
+  }
+}
+
+# Suspicious Activity Alert - Rate Limiting
+PUT _watcher/watch/rate_limit_exceeded
+{
+  "trigger": {
+    "schedule": {
+      "interval": "1m"
+    }
+  },
+  "input": {
+    "search": {
+      "request": {
+        "search_type": "query_then_fetch",
+        "indices": ["security-audit-*"],
+        "body": {
+          "query": {
+            "bool": {
+              "must": [
+                {
+                  "term": {
+                    "audit.eventType": "RATE_LIMIT_EXCEEDED"
+                  }
+                },
+                {
+                  "range": {
+                    "@timestamp": {
+                      "gte": "now-3m"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "aggs": {
+            "rate_limit_by_ip": {
+              "terms": {
+                "field": "source_ip",
+                "size": 10
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "condition": {
+    "compare": {
+      "ctx.payload.hits.total": {
+        "gte": 3
+      }
+    }
+  },
+  "actions": {
+    "security_notification": {
+      "email": {
+        "profile": "standard",
+        "to": ["security@yourcompany.com"],
+        "subject": "Security Alert: Rate Limiting Triggered",
+        "body": {
+          "html": "
+            <h2>Security Alert: Rate Limiting Exceeded</h2>
+            <p><strong>Alert Time:</strong> {{ctx.execution_time}}</p>
+            <p><strong>Total Rate Limit Violations:</strong> {{ctx.payload.hits.total}}</p>
+            <h3>Violating IP Addresses:</h3>
+            <ul>
+            {{#ctx.payload.aggregations.rate_limit_by_ip.buckets}}
+              <li>{{key}}: {{doc_count}} violations</li>
+            {{/ctx.payload.aggregations.rate_limit_by_ip.buckets}}
+            </ul>
+            <p>Consider blocking these IP addresses if the pattern continues.</p>
+          "
+        }
+      }
+    }
+  }
+}

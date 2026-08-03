@@ -1,0 +1,235 @@
+{"properties": [
+  {
+    "name": "app.jwt.secret",
+    "type": "java.lang.String",
+    "description": "JWT signing secret for token generation and validation",
+    "defaultValue": "d3v3l0pm3nt-s3cr3t-k3y-ch4ng3-m3-pl34s3"
+  },
+  {
+    "name": "app.jwt.ttl-seconds",
+    "type": "java.lang.Long",
+    "description": "JWT token time-to-live in seconds",
+    "defaultValue": 86400
+  },
+  {
+    "name": "app.twilio.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enable or disable Twilio SMS service integration",
+    "defaultValue": false
+  },
+  {
+    "name": "app.twilio.accountSid",
+    "type": "java.lang.String",
+    "description": "Twilio Account SID for SMS service authentication"
+  },
+  {
+    "name": "app.twilio.authToken",
+    "type": "java.lang.String",
+    "description": "Twilio Auth Token for SMS service authentication"
+  },
+  {
+    "name": "app.twilio.fromNumber",
+    "type": "java.lang.String",
+    "description": "Twilio phone number to send SMS messages from"
+  },
+  {
+    "name": "app.queue.email.key",
+    "type": "java.lang.String",
+    "description": "Redis key for email queue storage",
+    "defaultValue": "passwordless:queue:email"
+  },
+  {
+    "name": "app.queue.email.poll-ms",
+    "type": "java.lang.Long",
+    "description": "Email queue polling interval in milliseconds",
+    "defaultValue": 1000
+  },
+  {
+    "name": "app.queue.email.delayed-key",
+    "type": "java.lang.String",
+    "description": "Redis key for delayed email queue storage (used for GEO_ALERT emails)",
+    "defaultValue": "passwordless:queue:email:delayed"
+  },
+  {
+    "name": "app.queue.email.delayed-poll-ms",
+    "type": "java.lang.Long",
+    "description": "Delayed email queue polling interval in milliseconds",
+    "defaultValue": 1000
+  },
+  {
+    "name": "app.queue.email.geo-alert-delay-ms",
+    "type": "java.lang.Long",
+    "description": "Delay in milliseconds before sending GEO_ALERT emails to avoid simultaneous sending with MFA emails",
+    "defaultValue": 10000
+  },
+  {
+    "name": "app.cors.allowed-origins",
+    "type": "java.lang.String",
+    "description": "Comma-separated list of allowed CORS origins"
+  },
+  {
+    "name": "app.cors.health-origins",
+    "type": "java.lang.String",
+    "description": "Comma-separated list of allowed CORS origins for health endpoints"
+  },
+  {
+    "name": "app.recaptcha.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enable or disable reCAPTCHA verification",
+    "defaultValue": false
+  },
+  {
+    "name": "app.recaptcha.secret",
+    "type": "java.lang.String",
+    "description": "reCAPTCHA secret key for verification"
+  },
+  {
+    "name": "app.geoip.database",
+    "type": "java.lang.String",
+    "description": "Path to GeoIP database file (supports classpath: and file system paths)",
+    "defaultValue": "classpath:static/GeoLite2-City.mmdb"
+  },
+  {
+    "name": "app.geoip.enabled",
+    "type": "java.lang.Boolean",
+    "description": "Enable or disable GeoIP location lookup service",
+    "defaultValue": true
+  },
+  {
+    "name": "app.geoip.database.path",
+    "type": "java.lang.String",
+    "description": "Alternative path property for GeoIP database file (used by GeoIpSecurityService)",
+    "defaultValue": "/opt/geoip/GeoLite2-City.mmdb"
+  },
+  {
+    "name": "app.geoip.cache.ttl",
+    "type": "java.lang.Integer",
+    "description": "GeoIP cache time-to-live in seconds for Redis caching",
+    "defaultValue": 3600
+  },
+  {
+    "name": "spring.session.store-type",
+    "type": "org.springframework.boot.autoconfigure.session.StoreType",
+    "description": "Session store type (redis, jdbc, mongodb, hazelcast, none)",
+    "defaultValue": "none"
+  },
+  {
+    "name": "spring.session.redis.timeout",
+    "type": "java.time.Duration",
+    "description": "Session timeout duration",
+    "defaultValue": "1800s"
+  },
+  {
+    "name": "spring.session.redis.namespace",
+    "type": "java.lang.String",
+    "description": "Namespace for Redis session keys",
+    "defaultValue": "spring:session"
+  },
+  {
+    "name": "springdoc.api-docs.path",
+    "type": "java.lang.String",
+    "description": "Path for OpenAPI 3 API docs",
+    "defaultValue": "/v3/api-docs"
+  },
+  {
+    "name": "springdoc.swagger-ui.disabled",
+    "type": "java.lang.Boolean",
+    "description": "Enable or disable Swagger UI",
+    "defaultValue": false
+  },
+  {
+    "name": "app.captcha.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 'app.captcha.enabled'"
+  },
+  {
+    "name": "app.captcha.width",
+    "type": "java.lang.String",
+    "description": "A description for 'app.captcha.width'"
+  },
+  {
+    "name": "app.captcha.threshold",
+    "type": "java.lang.String",
+    "description": "A description for 'app.captcha.threshold'"
+  },
+  {
+    "name": "app.captcha.ttl",
+    "type": "java.lang.String",
+    "description": "A description for 'app.captcha.ttl'"
+  },
+  {
+    "name": "app.captcha.height",
+    "type": "java.lang.String",
+    "description": "A description for 'app.captcha.height'"
+  },
+  {
+    "name": "app.captcha.length",
+    "type": "java.lang.String",
+    "description": "A description for 'app.captcha.length'"
+  },
+  {
+    "name": "app.rate-limit.threshold",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.threshold'"
+  },
+  {
+    "name": "app.rate-limit.login-attempts.limit",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.login-attempts.limit'"
+  },
+  {
+    "name": "app.rate-limit.login-attempts.duration",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.login-attempts.duration'"
+  },
+  {
+    "name": "app.rate-limit.login-attempts.unit",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.login-attempts.unit'"
+  },
+  {
+    "name": "app.rate-limit.login-attempts.algorithm",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.login-attempts.algorithm'"
+  },
+  {
+    "name": "app.rate-limit.api-requests.limit",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.api-requests.limit'"
+  },
+  {
+    "name": "app.rate-limit.api-requests.duration",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.api-requests.duration'"
+  },
+  {
+    "name": "app.rate-limit.api-requests.unit",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.api-requests.unit'"
+  },
+  {
+    "name": "app.rate-limit.api-requests.algorithm",
+    "type": "java.lang.String",
+    "description": "A description for 'app.rate-limit.api-requests.algorithm'"
+  },
+  {
+    "name": "app.account-lockout.max-failed-attempts",
+    "type": "java.lang.String",
+    "description": "A description for 'app.account-lockout.max-failed-attempts'"
+  },
+  {
+    "name": "app.account-lockout.lockout-duration-minutes",
+    "type": "java.lang.String",
+    "description": "A description for 'app.account-lockout.lockout-duration-minutes'"
+  },
+  {
+    "name": "app.account-lockout.attempt-window-minutes",
+    "type": "java.lang.String",
+    "description": "A description for 'app.account-lockout.attempt-window-minutes'"
+  },
+  {
+    "name": "app.base-url",
+    "type": "java.lang.String",
+    "description": "A description for 'app.base-url'"
+  }
+]}

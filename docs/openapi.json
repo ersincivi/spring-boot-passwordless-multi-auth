@@ -1,0 +1,1507 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Passwordless Multi-Auth API",
+    "description": "Passwordless Multi-Auth Platform API - Passwordless Authentication\n\nThis API provides comprehensive endpoints for:\n- MagicLink-based passwordless authentication\n- User management and security operations\n- Role and authority management\n- Push notifications\n- TOTP/MFA verification\n\n## Authentication Flow\n1. Call `POST /api/auth/email-magiclink/send` with user email\n2. User opens the emailed link in a browser: `GET /api/auth/verify?token={token}`\n3. The server redirects (302) to the app scheme `passwordless://auth/callback?code={code}` (or `?status=totp_required` when MFA is enabled, `?status=error&reason=...` on failure)\n4. Trade the one-time code for a token pair via `POST /api/auth/exchange` (if TOTP was required, call `POST /api/auth/totp/verify` instead)\n5. Use the returned JWT in the Authorization header: `Bearer {token}`\n6. Renew with `POST /api/auth/refresh` (single-use rotation); revoke with `POST /api/auth/logout`\n\n## Flutter Integration\nFor Flutter apps, use the `/api/auth/email-magiclink/send` endpoint\nfor mobile authentication. The MagicLink can be handled via\ndeep linking in your Flutter app.\n",
+    "contact": {
+      "name": "Passwordless Multi-Auth Team",
+      "email": "api@example.com"
+    },
+    "license": {
+      "name": "Private",
+      "url": "https://github.com/ersincivi/spring-boot-passwordless-multi-auth"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local Development"
+    },
+    {
+      "url": "https://api.example.com",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Push Notifications",
+      "description": "Push notification endpoints for real-time messaging"
+    },
+    {
+      "name": "Authentication",
+      "description": "Passwordless authentication endpoints for API/Mobile clients"
+    },
+    {
+      "name": "Role Management",
+      "description": "Role management endpoints with authority assignments"
+    },
+    {
+      "name": "Authentication",
+      "description": "User registration with OTP verification"
+    },
+    {
+      "name": "User Management",
+      "description": "User management endpoints with optimized projections"
+    },
+    {
+      "name": "Authority Management",
+      "description": "Authority management endpoints for permission control"
+    },
+    {
+      "name": "Last Login Info",
+      "description": "Endpoints for retrieving user last login information"
+    }
+  ],
+  "paths": {
+    "/auth/google-one-tap": {
+      "post": {
+        "tags": [
+          "google-one-tap-controller"
+        ],
+        "operationId": "handleGoogleOneTap",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-otp/verify": {
+      "post": {
+        "tags": [
+          "email-otp-login-controller"
+        ],
+        "operationId": "verifyEmailOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-otp/send": {
+      "post": {
+        "tags": [
+          "email-otp-login-controller"
+        ],
+        "operationId": "sendEmailOtp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-magiclink/send": {
+      "post": {
+        "tags": [
+          "magic-link-web-controller"
+        ],
+        "operationId": "sendMagicLink",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/send": {
+      "post": {
+        "tags": [
+          "Push Notifications"
+        ],
+        "summary": "Send push message",
+        "description": "Send a push notification message to subscribed clients. Requires ADMIN, SERVICE, or USER role.",
+        "operationId": "send",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushMessage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Message accepted for delivery",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/authorities/batch": {
+      "post": {
+        "tags": [
+          "Authority Management"
+        ],
+        "summary": "Get authorities by names (batch)",
+        "description": "Get authorities by multiple names for batch operations. Performance: Optimized for batch permission checking. Security: Admin only access.",
+        "operationId": "getAuthoritiesByNames",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "description": "List of authority names",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Batch authorities retrieved successfully",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/verify-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify Registration OTP",
+        "description": "Verify OTP code to complete user registration. After successful verification, the user account will be activated.",
+        "operationId": "verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User verified and activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": {
+                    "status": "verified"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or expired OTP",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": {
+                    "error": "invalid_otp"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/totp/verify": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify TOTP",
+        "description": "Verify TOTP (Time-based One-Time Password) code for MFA. Used after MagicLink verification when TOTP is enabled for the user.",
+        "operationId": "verifyTotp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "TOTP verified successfully, token pair returned (access JWT + refresh token)",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "TOTP not enabled, invalid code, or verification error",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register User",
+        "description": "Register a new user with email verification via OTP. Requires reCAPTCHA v3 token in X-Recaptcha-Token header. An OTP will be sent to the provided email for verification.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OTP sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": {
+                    "status": "otp_sent"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "reCAPTCHA verification failed or invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": {
+                    "error": "recaptcha_failed"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/email-magiclink/send": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Send MagicLink",
+        "description": "Send a passwordless MagicLink to user's email for API/mobile authentication. The MagicLink token is single-use and expires after app.magiclink.api.ttl-seconds (default 120 seconds). The response is uniform whether or not the account exists (anti-enumeration).",
+        "operationId": "sendApiMagicLink",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MagicLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "MagicLink sent successfully",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Invalid email format or missing email",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "500": {
+            "description": "Email sending failed",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    },
+    "/settings/qr-code": {
+      "get": {
+        "tags": [
+          "settings-controller"
+        ],
+        "operationId": "getQrCodeImage",
+        "parameters": [
+          {
+            "name": "totpUri",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{username}/security": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "operationId": "getUserSecurity",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserSecurityResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/{username}/profile": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "summary": "Get user profile",
+        "description": "Get user profile information (optimized projection). Users can access their own profile, admins can access any profile.",
+        "operationId": "getUserProfile",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "Username of the user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved successfully",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserProfileResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseUserProfileResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/oauth": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "operationId": "getOAuthUsers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/locked": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "operationId": "getLockedUsers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/inactive": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "operationId": "getInactiveUsers",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 90
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/active": {
+      "get": {
+        "tags": [
+          "User Management"
+        ],
+        "operationId": "getActiveUsers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseListUserSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/roles": {
+      "get": {
+        "tags": [
+          "Role Management"
+        ],
+        "summary": "Get all roles",
+        "description": "Get all roles with authorities for management. Performance: ~85% less data, optimized for batch operations. Security: Admin only access.",
+        "operationId": "getAllRoles",
+        "responses": {
+          "200": {
+            "description": "Roles retrieved successfully",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/roles/{code}": {
+      "get": {
+        "tags": [
+          "Role Management"
+        ],
+        "summary": "Get role by code",
+        "description": "Get role with authorities - optimized for administrative operations. Performance: ~60% less data with optimized JOINs. Security: Admin only access.",
+        "operationId": "getRole",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "description": "Role code (USER, ADMIN, SERVICE)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ADMIN",
+                "USER",
+                "SERVICE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Role retrieved successfully",
+            "content": {
+              "application/json": {}
+            }
+          },
+          "404": {
+            "description": "Role not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseRoleResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/roles/basic": {
+      "get": {
+        "tags": [
+          "Role Management"
+        ],
+        "summary": "Get basic roles",
+        "description": "Get basic roles for user assignment. Performance: Lightweight projection for role selection. Security: Admin only access.",
+        "operationId": "getBasicRoles",
+        "responses": {
+          "200": {
+            "description": "Basic roles retrieved successfully",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/push/stream": {
+      "get": {
+        "tags": [
+          "Push Notifications"
+        ],
+        "summary": "Stream push notifications",
+        "description": "Subscribe to Server-Sent Events (SSE) stream for real-time push notifications. Connection remains open for 30 minutes.",
+        "operationId": "stream",
+        "responses": {
+          "200": {
+            "description": "SSE stream established",
+            "content": {
+              "text/event-stream": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/last-login": {
+      "get": {
+        "tags": [
+          "Last Login Info"
+        ],
+        "summary": "Get last login by email",
+        "description": "Get last login info by email for pre-login display. This endpoint is public and does not require authentication.",
+        "operationId": "getLastLoginByEmail",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "description": "User email address",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Last login info retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": {
+                    "email": "user@example.com",
+                    "userName": "John Doe",
+                    "loginMethod": "MAGICLINK",
+                    "profileImageUrl": "https://...",
+                    "lastLoginAt": "2025-01-20T10:30:00Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/last-login/current": {
+      "get": {
+        "tags": [
+          "Last Login Info"
+        ],
+        "summary": "Get current user last login",
+        "description": "Get last login information for the authenticated user including login method, timestamp, and profile details.",
+        "operationId": "getCurrentUserLastLogin",
+        "responses": {
+          "200": {
+            "description": "Last login info retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "example": {
+                    "email": "user@example.com",
+                    "userName": "John Doe",
+                    "loginMethod": "MAGICLINK",
+                    "profileImageUrl": "https://...",
+                    "lastLoginAt": "2025-01-20T10:30:00Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/authorities": {
+      "get": {
+        "tags": [
+          "Authority Management"
+        ],
+        "summary": "Get all authorities",
+        "description": "Get all authorities for management. Performance: ~90% less data, optimized for batch operations. Security: Admin only access.",
+        "operationId": "getAllAuthorities",
+        "responses": {
+          "200": {
+            "description": "Authorities retrieved successfully",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/authorities/{name}": {
+      "get": {
+        "tags": [
+          "Authority Management"
+        ],
+        "summary": "Get authority by name",
+        "description": "Get authority information - optimized for permission management. Performance: ~90% less data transfer compared to full entity. Security: Admin only access.",
+        "operationId": "getAuthority",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "Authority name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authority retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Authority not found",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseAuthorityResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/authorities/search": {
+      "get": {
+        "tags": [
+          "Authority Management"
+        ],
+        "summary": "Search authorities",
+        "description": "Search authorities by name pattern. Performance: Optimized for search operations. Security: Admin only access.",
+        "operationId": "searchAuthorities",
+        "parameters": [
+          {
+            "name": "pattern",
+            "in": "query",
+            "description": "Search pattern for authority name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results retrieved successfully",
+            "content": {
+              "application/json": {}
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/verify": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify MagicLink",
+        "description": "Verify a MagicLink token from the email link. This endpoint runs in the browser, so it responds with a 302 redirect to the mobile app scheme (app.mobile.callback-url, default `passwordless://auth/callback`) instead of JSON. On success the redirect carries a one-time exchange code (`?code=...`) which the app trades for a token pair via `POST /api/auth/exchange`. If TOTP is enabled, the redirect carries `?status=totp_required&username=...&email=...` and the app must call `POST /api/auth/totp/verify`. Failures redirect with `?status=error&reason=...`.",
+        "operationId": "verifyApiMagicLink",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "description": "MagicLink token from email",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to the app callback. Success: `?code={oneTimeCode}`; TOTP: `?status=totp_required&username=...&email=...`; Error: `?status=error&reason=token_missing|token_invalid|user_not_found|account_disabled|account_locked|verification_failed`"
+          }
+        }
+      }
+    },
+    "/api/auth/exchange": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Exchange code for tokens",
+        "description": "Trade the one-time exchange code received via the app-scheme redirect for a JWT access token + refresh token pair. The code is single use and expires after 60 seconds.",
+        "operationId": "exchangeCode",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "One-time exchange code from the app-scheme redirect"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token pair returned: {token, expiresAt, refreshToken, refreshTokenExpiresAt}"
+          },
+          "400": {
+            "description": "Missing exchange code"
+          },
+          "401": {
+            "description": "Invalid, expired or already used exchange code"
+          },
+          "403": {
+            "description": "Account disabled or locked"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Refresh access token",
+        "description": "Exchange a valid refresh token for a new access token and a new refresh token. The presented refresh token is invalidated (single-use rotation).",
+        "operationId": "refreshAccessToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "refreshToken"
+                ],
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New token pair issued: {token, expiresAt, refreshToken, refreshTokenExpiresAt}"
+          },
+          "400": {
+            "description": "Missing refresh token"
+          },
+          "401": {
+            "description": "Refresh token invalid, expired or already used"
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout",
+        "description": "Revoke the current access token (from the Authorization header) and optionally the refresh token passed in the request body.",
+        "operationId": "logout",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Tokens revoked"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Current user",
+        "description": "Return profile, roles and MFA status of the authenticated user.",
+        "operationId": "currentUser",
+        "responses": {
+          "200": {
+            "description": "Current user information: {username, email, name, profileImage, mfaEnabled, roles}"
+          },
+          "401": {
+            "description": "Missing or invalid access token"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PushMessage": {
+        "type": "object",
+        "description": "Push message to send",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "description": "OTP verification request with email and OTP code",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "otp": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "MfaVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "description": "Registration request with name and email",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "MagicLinkRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseUserSecurityResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserSecurityResponse"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserSecurityResponse": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "mfaEnabled": {
+            "type": "boolean"
+          },
+          "phoneNumber": {
+            "type": "string"
+          },
+          "oauthProvider": {
+            "type": "string"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLoginIp": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseUserProfileResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserProfileResponse"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserProfileResponse": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lastLoginIp": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseListUserSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserSummaryResponse"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UserSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponseRoleResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RoleResponse"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RoleResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "ADMIN",
+              "USER",
+              "SERVICE"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "authorities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApiResponseAuthorityResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "message": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthorityResponse"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AuthorityResponse": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "description": "Enter JWT token obtained from MagicLink authentication",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

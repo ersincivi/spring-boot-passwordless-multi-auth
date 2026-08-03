@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Metrics - Secure Project</title>
+    
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        <i class="fas fa-cogs text-blue-500 mr-2"></i>Application Metrics
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500" th:text="'Last Updated: ' + ${timestamp}">Last Updated: Now</span>
+                    <a href="/admin/monitoring/dashboard" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+        <!-- Error Information -->
+        <div class="mb-8" th:if="${appMetrics != null and appMetrics['error'] != null}">
+            <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="text-lg font-semibold text-red-800">Metrics Warning</h4>
+                        <p class="mt-2 text-sm text-red-700" th:text="${appMetrics['error']}">Error message will be displayed here</p>
+                        <p class="mt-1 text-sm text-red-600">Basic application metrics are still available above.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Application Metrics Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            
+            <!-- HTTP Requests -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+                <div class="px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-globe text-2xl text-blue-500"></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900">HTTP Requests</h4>
+                            <p class="text-2xl font-bold text-blue-600" th:text="${appMetrics != null and appMetrics.httpRequests != null and appMetrics.httpRequests.totalRequests != null ? appMetrics.httpRequests.totalRequests : '0'}">1,234</p>
+                            <p class="text-sm text-gray-500">Total requests</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Average Response Time -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+                <div class="px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-clock text-2xl text-green-500"></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900">Avg Response</h4>
+                            <p class="text-2xl font-bold text-green-600" th:text="(${appMetrics != null and appMetrics.httpRequests != null and appMetrics.httpRequests.averageResponseTime != null ? appMetrics.httpRequests.averageResponseTime : '0'}) + ' ms'">125ms</p>
+                            <p class="text-sm text-gray-500">Response time</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Connections -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+                <div class="px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-database text-2xl text-purple-500"></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900">DB Connections</h4>
+                            <p class="text-2xl font-bold text-purple-600" th:text="${appMetrics != null and appMetrics.databaseMetrics != null and appMetrics.databaseMetrics.activeConnections != null ? appMetrics.databaseMetrics.activeConnections : '0'}">8</p>
+                            <p class="text-sm text-gray-500" th:text="'Max: ' + (${appMetrics != null and appMetrics.databaseMetrics != null and appMetrics.databaseMetrics.maxConnections != null ? appMetrics.databaseMetrics.maxConnections : '20'})">Max: 20</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Redis Operations -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+                <div class="px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-memory text-2xl text-red-500"></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h4 class="text-lg font-semibold text-gray-900">Redis Ops</h4>
+                            <p class="text-2xl font-bold text-red-600" th:text="${appMetrics != null and appMetrics.redisMetrics != null and appMetrics.redisMetrics.operations != null ? appMetrics.redisMetrics.operations : '0'}">567</p>
+                            <p class="text-sm text-gray-500" th:text="'Latency: ' + (${appMetrics != null and appMetrics.redisMetrics != null and appMetrics.redisMetrics.averageLatency != null ? appMetrics.redisMetrics.averageLatency : '0'}) + 'ms'">Latency: 2.1ms</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                <!-- Response Time -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900">Response Time</h4>
+                        <i class="fas fa-tachometer-alt text-blue-500"></i>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-3xl font-bold text-blue-600" th:text="(${performanceMetrics != null and performanceMetrics.averageResponseTime != null ? performanceMetrics.averageResponseTime : '125.5'}) + ' ms'">125.5 ms</p>
+                        <p class="text-sm text-gray-500 mt-2">Average response time</p>
+                    </div>
+                </div>
+
+                <!-- Requests per Second -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900">Throughput</h4>
+                        <i class="fas fa-bolt text-yellow-500"></i>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-3xl font-bold text-yellow-600" th:text="(${performanceMetrics != null and performanceMetrics.requestsPerSecond != null ? performanceMetrics.requestsPerSecond : '15.2'}) + ' req/s'">15.2 req/s</p>
+                        <p class="text-sm text-gray-500 mt-2">Requests per second</p>
+                    </div>
+                </div>
+
+                <!-- Error Rate -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900">Error Rate</h4>
+                        <i class="fas fa-exclamation-triangle text-red-500"></i>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-3xl font-bold text-red-600" th:text="(${performanceMetrics != null and performanceMetrics.errorRate != null ? performanceMetrics.errorRate : '0.1'}) + '%'">0.1%</p>
+                        <p class="text-sm text-gray-500 mt-2">Error percentage</p>
+                    </div>
+                </div>
+
+                <!-- Uptime -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900">Uptime</h4>
+                        <i class="fas fa-clock text-green-500"></i>
+                    </div>
+                    <div class="mt-4">
+                        <p class="text-3xl font-bold text-green-600" id="uptimeDisplay">5h 23m</p>
+                        <p class="text-sm text-gray-500 mt-2">Application uptime</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="/admin/monitoring/dashboard" class="block p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <div class="flex items-center">
+                    <i class="fas fa-tachometer-alt text-2xl text-blue-500 mr-4"></i>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Dashboard</h4>
+                        <p class="text-gray-600">Overview & metrics</p>
+                    </div>
+                </div>
+            </a>
+
+            <a href="/admin/monitoring/system" class="block p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <div class="flex items-center">
+                    <i class="fas fa-server text-2xl text-green-500 mr-4"></i>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">System</h4>
+                        <p class="text-gray-600">Hardware & OS metrics</p>
+                    </div>
+                </div>
+            </a>
+
+            <a href="/admin/monitoring/health" class="block p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <div class="flex items-center">
+                    <i class="fas fa-heartbeat text-2xl text-red-500 mr-4"></i>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Health</h4>
+                        <p class="text-gray-600">Component health status</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

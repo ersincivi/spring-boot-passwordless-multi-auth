@@ -1,0 +1,49 @@
+{
+  "version": "8.13.4",
+  "objects": [
+    {
+      "id": "passwordless-ai-monitoring-dashboard",
+      "type": "dashboard",
+      "attributes": {
+        "title": "Passwordless Multi-Auth Monitoring Dashboard",
+        "description": "Comprehensive security monitoring for Passwordless Multi-Auth Project application",
+        "panelsJSON": "[{\"id\":\"security-events-timeline\",\"type\":\"visualization\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":15}},{\"id\":\"login-attempts-chart\",\"type\":\"visualization\",\"gridData\":{\"x\":0,\"y\":15,\"w\":24,\"h\":15}},{\"id\":\"threat-level-pie\",\"type\":\"visualization\",\"gridData\":{\"x\":24,\"y\":15,\"w\":24,\"h\":15}},{\"id\":\"geo-location-map\",\"type\":\"visualization\",\"gridData\":{\"x\":0,\"y\":30,\"w\":48,\"h\":15}},{\"id\":\"failed-login-table\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":45,\"w\":48,\"h\":15}}]",
+        "timeRestore": true,
+        "timeTo": "now",
+        "timeFrom": "now-24h",
+        "refreshInterval": {
+          "pause": false,
+          "value": 30000
+        }
+      }
+    },
+    {
+      "id": "passwordless-ai-events-timeline",
+      "type": "visualization",
+      "attributes": {
+        "title": "Security Events Timeline",
+        "visState": "{\"title\":\"Security Events Timeline\",\"type\":\"histogram\",\"params\":{\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"truncate\":100},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":100},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":true,\"type\":\"histogram\",\"mode\":\"stacked\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"audit.eventType\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+        "uiStateJSON": "{}",
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"security-audit-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+        }
+      }
+    },
+    {
+      "id": "application-monitoring-dashboard",
+      "type": "dashboard",
+      "attributes": {
+        "title": "Application Monitoring Dashboard",
+        "description": "Application performance and error monitoring",
+        "panelsJSON": "[{\"id\":\"log-levels-chart\",\"type\":\"visualization\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15}},{\"id\":\"exceptions-timeline\",\"type\":\"visualization\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15}},{\"id\":\"response-time-chart\",\"type\":\"visualization\",\"gridData\":{\"x\":0,\"y\":15,\"w\":24,\"h\":15}},{\"id\":\"memory-usage-chart\",\"type\":\"visualization\",\"gridData\":{\"x\":24,\"y\":15,\"w\":24,\"h\":15}},{\"id\":\"recent-errors-table\",\"type\":\"search\",\"gridData\":{\"x\":0,\"y\":30,\"w\":48,\"h\":15}}]",
+        "timeRestore": true,
+        "timeTo": "now",
+        "timeFrom": "now-1h",
+        "refreshInterval": {
+          "pause": false,
+          "value": 15000
+        }
+      }
+    }
+  ]
+}

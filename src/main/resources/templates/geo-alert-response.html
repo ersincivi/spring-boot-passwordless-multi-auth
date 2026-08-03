@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />	
+    
+    <title th:text="#{geo.alert.response.title}">Security Alert Response - Passwordless Multi-Auth</title>
+	
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+
+		.response-container {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+			padding: 40px;
+			width: 100%;
+			max-width: 600px;
+			text-align: center;
+		}
+
+		.icon {
+			font-size: 4rem;
+			margin-bottom: 20px;
+		}
+
+		.success-icon {
+			color: #22c55e;
+		}
+
+		.denied-icon {
+			color: #dc2626;
+		}
+
+		.error-icon {
+			color: #f59e0b;
+		}
+
+		h1 {
+			font-size: 2rem;
+			margin-bottom: 15px;
+			color: #333;
+		}
+
+		.message {
+			font-size: 1.1rem;
+			color: #666;
+			margin-bottom: 30px;
+			line-height: 1.6;
+		}
+
+		.recommendations {
+			background: rgba(245, 158, 11, 0.1);
+			border: 1px solid rgba(245, 158, 11, 0.2);
+			border-radius: 10px;
+			padding: 20px;
+			margin: 30px 0;
+			text-align: left;
+		}
+
+		.recommendations h2 {
+			color: #d97706;
+			margin-bottom: 15px;
+			font-size: 1.3rem;
+		}
+
+		.recommendations ul {
+			list-style: none;
+			padding: 0;
+		}
+
+		.recommendations li {
+			padding: 10px 0;
+			color: #666;
+			display: flex;
+			align-items: start;
+			gap: 10px;
+		}
+
+		.recommendations li:before {
+			content: "🔒";
+			font-size: 1.2rem;
+		}
+
+		.action-buttons {
+			display: flex;
+			gap: 15px;
+			flex-wrap: wrap;
+			justify-content: center;
+			margin-top: 30px;
+		}
+
+		.btn {
+			padding: 15px 30px;
+			border: none;
+			border-radius: 12px;
+			font-size: 1rem;
+			font-weight: 600;
+			cursor: pointer;
+			text-decoration: none;
+			display: inline-block;
+			transition: all 0.3s ease;
+		}
+
+		.btn-primary {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+		}
+
+		.btn-danger {
+			background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+			color: white;
+		}
+
+		.btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+		}
+
+		.footer {
+			margin-top: 30px;
+			padding-top: 20px;
+			border-top: 1px solid #e5e7eb;
+			color: #666;
+			font-size: 0.9rem;
+		}
+	</style>
+</head>
+<body>
+	<div class="response-container">
+		<!-- Success Response -->
+		<div th:if="${success}">
+			<div class="icon success-icon">✅</div>
+			<h1 th:text="#{geo.alert.confirmed.title}">Login Confirmed</h1>
+			<p class="message" th:text="#{geo.alert.confirmed.message}">
+				Thank you for confirming this login attempt. Your account remains secure.
+			</p>
+		</div>
+
+		<!-- Denied Response -->
+		<div th:if="${denied}">
+			<div class="icon denied-icon">🚨</div>
+			<h1 th:text="#{geo.alert.denied.title}">Session Terminated</h1>
+			<p class="message" th:text="#{geo.alert.denied.message}">
+				The suspicious session has been terminated immediately. Please take the following security steps:
+			</p>
+
+			<!-- Security Recommendations -->
+			<div class="recommendations" th:if="${showSecurityRecommendations}">
+				<h2 th:text="#{geo.alert.recommendations.title}">🛡️ Important Security Steps</h2>
+				<ul>
+					<li th:text="#{geo.alert.recommendation.mfa}">Enable two-factor authentication (2FA) for additional security</li>
+					<li th:text="#{geo.alert.recommendation.review}">Review your recent account activity and active sessions</li>
+					<li th:text="#{geo.alert.recommendation.devices}">Check for any unrecognized devices connected to your account</li>
+					<li th:text="#{geo.alert.recommendation.support}">Contact our security team if you continue to see suspicious activity</li>
+				</ul>
+			</div>
+
+			<div class="action-buttons">
+				<a href="/login" class="btn btn-primary" th:text="#{geo.alert.login}">Go to Login</a>
+			</div>
+		</div>
+
+		<!-- Error Response -->
+		<div th:if="${error}">
+			<div class="icon error-icon">⚠️</div>
+			<h1 th:text="#{geo.alert.error.title}">Invalid or Expired Link</h1>
+			<p class="message" th:text="#{geo.alert.error.message}">
+				This security alert link is invalid or has expired. Security links are only valid for 24 hours.
+			</p>
+			<div class="action-buttons">
+				<a href="/login" class="btn btn-primary" th:text="#{geo.alert.login}">Go to Login</a>
+			</div>
+		</div>
+
+		<div class="footer">
+			<p th:text="#{geo.alert.footer}">If you have any questions, please contact our security team.</p>
+			<p>&copy; 2024 Passwordless Multi-Auth. All rights reserved.</p>
+		</div>
+	</div>
+</body>
+</html>

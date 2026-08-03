@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  
+  <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="shortcut icon" href="/images/favicon.ico" />
+  
+  <title>Service</title>
+</head>
+<body>
+<div th:replace="fragments/layout :: layout(~{::section})" th:with="pageTitle='Service'">
+  <section>
+    <h2>Service Dashboard</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>Service Logs</h3>
+        <p>View system integration logs.</p>
+        <a class="btn" href="/service/logs">Open</a>
+      </div>
+      <div class="card">
+        <h3>API Keys</h3>
+        <p>Manage service credentials.</p>
+        <a class="btn" href="/service/keys">Open</a>
+      </div>
+      <div class="card">
+        <h3>Health</h3>
+        <p>Monitor service status.</p>
+        <a class="btn" href="/actuator/health">Open</a>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
+
+

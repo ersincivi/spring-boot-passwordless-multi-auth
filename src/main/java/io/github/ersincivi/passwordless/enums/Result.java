@@ -1,0 +1,20 @@
+package io.github.ersincivi.passwordless.enums;
+
+public enum Result {
+    RESET_SUCCESS,
+    ERROR,
+    RATE_LIMIT,
+    EMAIL_REQUIRED,
+    EMAIL_NOT_CONFIRMED,
+    EMAIL_SEND_FAILURE,
+    EMAIL_SENT,
+    INTERNAL_ERROR,
+    TOKEN_REQUIRED,
+    TOKEN_USED,
+    TOKEN_EXPIRED,
+    TOKEN_VALID,
+    PASSWORD_REQUIRED,
+    INVALID_RESET_TOKEN,
+    PASSWORD_UPDATE_ERROR,
+    UNEXPECTED_ERROR
+}

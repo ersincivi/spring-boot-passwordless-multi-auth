@@ -1,0 +1,26 @@
+# Build output
+target/
+
+# Local runtime data
+logs/
+data/
+
+# Secrets - never commit these
+.env
+.env.local
+*.pem
+*.key
+*.p12
+*.jks
+
+# IDE / editor
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.qoder/
+
+# OS
+.DS_Store
+**/.DS_Store

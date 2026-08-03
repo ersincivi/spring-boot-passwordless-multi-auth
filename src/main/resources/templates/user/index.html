@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+
+  <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+  <link rel="shortcut icon" href="/images/favicon.ico" />
+
+  <title>User</title>
+</head>
+<body>
+<div th:replace="fragments/layout :: layout(~{::section})" th:with="pageTitle='Dashboard'">
+  <section>
+    <h2 th:text="#{{dashboard.title}}">Dashboard</h2>
+    <div class="grid">
+      <div class="card">
+        <h3 th:text="#{{dashboard.profile}}">Profile</h3>
+        <p th:text="#{{dashboard.profile_desc}}">View and update your info.</p>
+        <a class="btn" href="/settings">Open</a>
+      </div>
+      <div class="card">
+        <h3>Security</h3>
+        <p>2FA, SMS and TOTP settings.</p>
+        <a class="btn" href="/settings#security">Open</a>
+      </div>
+      <div class="card">
+        <h3>Notifications</h3>
+        <p>Push and email preferences.</p>
+        <a class="btn" href="/settings#notifications">Open</a>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
+
+

@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+
+    <title th:text="#{totp.title} + ' - Passwordless Multi-Auth'">Two-Factor Authentication - Passwordless Multi-Auth</title>
+    
+    <style>
+        /* Modern CSS for TOTP verification */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .totp-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .totp-logo {
+			margin-bottom: 30px;
+		}
+
+		.totp-logo .logo {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 10px;
+		}
+
+        .logo img {
+			width: 100px;
+			height: auto;
+		}
+
+        .totp-logo .logo .logo-text {
+			text-decoration: none;
+			font-size: 2.5rem;
+			color: #333;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+        .totp-title {
+			font-size: 1.8rem;
+			font-weight: 600;
+			color: #333;
+			margin-bottom: 8px;
+		}
+
+		.totp-subtitle {
+			color: #666;
+			font-size: 1rem;
+			margin-bottom: 30px;
+			line-height: 1.5;
+		}
+
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 5px;
+        }
+
+        .form-input {
+			width: 100%;
+			padding: 15px;
+			border: 2px solid #e5e7eb;
+			border-radius: 12px;
+			font-size: 1rem;
+			transition: all 0.3s ease;
+			background: rgba(255, 255, 255, 0.9);
+			text-align: center;
+			letter-spacing: 0.1em;
+			font-weight: 600;
+		}
+
+		.form-input:focus {
+			outline: none;
+			border-color: #667eea;
+			box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+			background: rgba(255, 255, 255, 1);
+		}
+
+		.form-input.valid {
+			border-color: #16a34a;
+			background: rgba(34, 197, 94, 0.05);
+		}
+
+		.form-input.invalid {
+			border-color: #dc2626;
+			background: rgba(239, 68, 68, 0.05);
+		}
+
+        /* input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e1e1;
+            border-radius: 12px;
+            font-size: 18px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+            letter-spacing: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+            transform: translateY(-2px);
+        } */
+
+        .verify-btn {
+            width: 100%;
+            padding: 15px;
+            background:#4A44D6;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .verify-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .verify-btn:active {
+            transform: translateY(0);
+        }
+
+        .verify-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .code-input {
+			text-align: center;
+			letter-spacing: 0.2em;
+			font-size: 1.5rem;
+			font-weight: bold;
+			padding: 20px;
+		}
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+
+		/* Back Link */
+		.back-to-login {
+			text-align: center;
+            margin-top: 20px;
+		}
+
+		.back-to-login a {
+			color: #667eea;
+			text-decoration: none;
+			font-weight: 500;
+			transition: color 0.3s ease;
+		}
+
+		.back-to-login a:hover {
+			color: #764ba2;
+			text-decoration: underline;
+		}
+
+        .alert {
+			padding: 15px;
+			border-radius: 8px;
+			margin-bottom: 20px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			font-weight: 500;
+		}
+
+		.alert-error {
+			background: rgba(239, 68, 68, 0.1);
+			color: #dc2626;
+			border: 1px solid rgba(239, 68, 68, 0.2);
+		}
+
+		.alert-warning {
+			background: rgba(245, 158, 11, 0.1);
+			color: #d97706;
+			border: 1px solid rgba(245, 158, 11, 0.2);
+		}
+
+        .alert-success {
+			background: rgba(212, 237, 218, 0.9);
+			color: #155724;
+			border: 1px solid #c3e6cb;
+		}
+
+        .security-notice {
+			font-size: 0.85rem;
+			color: #6b7280;
+			line-height: 1.4;
+		}
+
+        .backup-code-section {
+            background: rgba(240, 248, 255, 0.9);
+            border: 1px solid #b6d4da;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 25px;
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+
+        .backup-code-section h4 {
+            color: #475569;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .backup-code-section p {
+            color: #64748b;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .backup-code-toggle {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #0c5460 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            align-items: center;
+        }
+
+        .backup-code-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .backup-code-toggle:active {
+            transform: translateY(0);
+        }
+
+        .backup-form {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .backup-form .form-input {
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            font-size: 1rem;
+        }
+
+        .instructions {
+            background: rgba(240, 248, 255, 0.9);
+            border: 1px solid #b6d4da;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .instructions h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .instructions ol {
+            color: #0c5460;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        .countdown {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e1e1e1;
+            border-radius: 2px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #d5006a, #667eea);
+            width: 100%;
+            animation: countdown 30s linear infinite;
+        }
+
+        @keyframes countdown {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 480px) {
+            .totp-container {
+                padding: 30px 20px;
+                margin: 10px;
+            }
+
+            .title {
+                font-size: 1.8rem;
+            }
+
+            .subtitle {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Loading state styles */
+        .button-loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .button-loading .loading-spinner {
+            display: inline-block;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Accessibility improvements */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Focus improvements for accessibility */
+        input:focus-visible,
+        button:focus-visible {
+            outline: 3px solid #667eea;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="totp-container">
+        <div class="totp-logo">
+			<div class="logo">
+				<a th:href="@{/totp/cancel}">
+					<img src="/images/logo/logo.webp" alt="Logo">
+				</a>
+			</div>
+			<h1 class="totp-title" th:text="#{totp.title}">Two-Factor Authentication</h1>
+			<!-- <p class="totp-subtitle" th:text="#{totp.subtitle}">Enter the verification code from your authenticator app</p> -->
+		</div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+            <h4 th:text="#{totp.instructions.title}">📱 How to find your code:</h4>
+            <ol>
+                <li th:text="#{totp.instructions.step1}">Open your Google Authenticator app</li>
+                <li th:text="#{totp.instructions.step2}">Find the "Passwordless Multi-Auth" entry</li>
+                <!-- <li th:text="#{totp.instructions.step3}">Enter the 6-digit code displayed</li> -->
+            </ol>
+            
+            <div class="countdown">
+                <span th:text="#{totp.countdown}">⏱️ Codes refresh every 30 seconds</span>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div th:if="${error}" class="alert alert-error" role="alert" aria-live="polite">
+            <span class="alert-icon" aria-hidden="true">⚠</span>
+            
+             <span th:if="${error == 'totp_not_enabled'}" 
+                th:text="#{totp.not.enabled}"></span>
+            
+            <span th:if="${error == 'verification_error'}" 
+                th:text="#{totp.verification.error}"></span>
+            
+            <span th:if="${error == 'invalid_code'}" 
+                th:text="#{totp.invalid.code}"></span>
+            
+            <span th:if="${error == 'backup_code_invalid'}" 
+                th:text="#{totp.backup.code.invalid}"></span>
+            
+            <span th:if="${error == 'backup_code_used'}" 
+                th:text="#{totp.backup.code.used}"></span>
+                
+            <span th:unless="${error == 'totp_not_enabled' or error == 'verification_error' or error == 'invalid_code' or error == 'backup_code_invalid' or error == 'backup_code_used'}" 
+                th:text="#{totp.general.error}">An unexpected error occurred.</span>
+        </div>
+        
+        <!-- TOTP Form -->
+        <form id="totpForm" class="verify-form" th:action="@{/totp}" method="post" novalidate>
+            
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+            
+            <div class="form-group">
+                <label for="code" th:text="#{totp.code.label}">Verification Code</label>
+                <div class="input-container">
+                    <input 
+                        type="text" 
+                        id="code" 
+                        name="code"
+                        class="form-input code-input" 
+                        required 
+                        aria-describedby="codeHelp"
+                        autocomplete="one-time-code"
+                        pattern="[0-9]{6}"
+                        maxlength="6"
+                        placeholder="000000"
+                        title="Enter the 6-digit code from your authenticator app"
+                    />
+                </div>
+                <small id="codeHelp" class="visually-hidden" th:text="#{totp.code.help}">
+                    Enter the 6-digit verification code from your authenticator app
+                </small>
+            </div>
+
+            <button type="submit" class="verify-btn" th:text="#{verify.btn.text}">
+				<span class="btn-text">Verify Code</span>
+				<div class="btn-loader" style="display: none;">
+					<div class="spinner" th:aria-label="#{verify.loading.aria}" aria-label="Loading..."></div>
+				</div>
+			</button>
+            
+            <small id="verifyButtonHelp" class="visually-hidden" th:text="#{totp.verify.help}">
+                Click to verify your authentication code
+            </small>
+        </form>
+        
+        <!-- Backup Code Section -->
+        <div class="backup-code-section">
+            <h4 th:text="#{totp.backup.title}">🔑 Can't access your authenticator app?</h4>
+            <!-- <p style="color: #856404; font-size: 0.9rem;" th:text="#{totp.backup.description}">If you can't access your authenticator app, you can use a backup code instead.</p> -->
+            
+            <button type="button" class="backup-code-toggle" onclick="toggleBackupForm()" th:text="'↪ ' + #{totp.backup.toggle}">
+                Use backup code instead
+            </button>
+            
+            <div class="backup-form" id="backupForm">
+                <form th:action="@{/totp/backup}" method="post" id="backupCodeForm">
+                    <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+                    
+                    <div class="form-group">
+                        <label for="backupCode" th:text="#{totp.backup.code.label}">Backup Code</label>
+                        <div class="input-container">
+                            <input 
+                                type="text" 
+                                id="backupCode" 
+                                name="backupCode"
+                                class="form-input" 
+                                required 
+                                th:placeholder="#{totp.backup.placeholder}"
+                                placeholder="ABCD1234"
+                                maxlength="8"
+                                pattern="[A-Z0-9]{8}"
+                                autocomplete="off"
+                                aria-describedby="backupCodeHelp"
+                            />
+                        </div>
+                        <small id="backupCodeHelp" class="security-notice">
+                            <span th:text="#{totp.backup.code.help}">Enter one of your 8-character backup codes</span>
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="verify-btn" id="backupVerifyBtn">
+                        <span class="btn-text" th:text="#{totp.backup.verify.button}">🔓 Verify Backup Code</span>
+                        <div class="btn-loader" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Back to Login Link -->
+		<div class="back-to-login">
+			<a th:href="@{/totp/cancel}" role="button" tabindex="0" rel="nofollow">← <span th:text="#{nav.backToLogin}">Back to Login</span></a>
+		</div>
+        
+        <!-- Help Link -->
+        <!-- <div style="margin-top: 20px; text-align: center;">
+            <a href="/help/2fa" style="color: #667eea; text-decoration: none; font-size: 0.9rem;" th:text="#{totp.help.link}">
+                🆘 Need help with 2FA?
+            </a>
+        </div> -->
+    </div>
+
+    <script th:nonce="${nonce}">
+        // CSRF token handling
+        const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+        const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+			const codeInput = document.getElementById('code');
+			const form = document.querySelector('.verify-form');
+			const submitBtn = document.querySelector('.verify-btn');
+			
+			if (codeInput && submitBtn) {
+				// Function to validate and update button state
+				function updateButtonState() {
+					const value = codeInput.value.trim();
+					const isValid = /^[0-9]{6}$/.test(value);
+					
+					if (isValid) {
+						codeInput.classList.add('valid');
+						codeInput.classList.remove('invalid');
+						submitBtn.disabled = false;
+						submitBtn.style.opacity = '1';
+						submitBtn.style.cursor = 'pointer';
+					} else {
+						codeInput.classList.remove('valid');
+						if (value.length > 0) {
+							codeInput.classList.add('invalid');
+						} else {
+							codeInput.classList.remove('invalid');
+						}
+						submitBtn.disabled = true;
+						submitBtn.style.opacity = '0.7';
+						submitBtn.style.cursor = 'not-allowed';
+					}
+				}
+				
+				// Initial button state
+				updateButtonState();
+				
+				// Input event handler
+				codeInput.addEventListener('input', function() {
+					// Only allow digits and limit to 6 characters
+					this.value = this.value.replace(/[^0-9]/g, '').substring(0, 6);
+					
+					// Update button state
+					updateButtonState();
+					
+					// Auto-submit when 6 digits are entered
+					if (this.value.length === 6) {
+						setTimeout(() => {
+							if (this.value.length === 6 && !submitBtn.disabled) {
+								// Show loading state before submission
+								const btnText = submitBtn.querySelector('.btn-text');
+								const btnLoader = submitBtn.querySelector('.btn-loader');
+								if (btnText) btnText.style.display = 'none';
+								if (btnLoader) btnLoader.style.display = 'block';
+								submitBtn.disabled = true;
+								
+								// Submit the form
+								form.submit();
+							}
+						}, 500);
+					}
+				});
+
+				// Handle paste
+				codeInput.addEventListener('paste', function(e) {
+					setTimeout(() => {
+						let value = e.target.value.replace(/[^0-9]/g, '').substring(0, 6);
+						e.target.value = value;
+						
+						updateButtonState();
+						
+						if (value.length === 6) {
+							setTimeout(() => {
+								if (!submitBtn.disabled) {
+									// Show loading state before submission
+									const btnText = submitBtn.querySelector('.btn-text');
+									const btnLoader = submitBtn.querySelector('.btn-loader');
+									if (btnText) btnText.style.display = 'none';
+									if (btnLoader) btnLoader.style.display = 'block';
+									submitBtn.disabled = true;
+									
+									// Submit the form
+									form.submit();
+								}
+							}, 100);
+						}
+					}, 0);
+				});
+				
+				// Manual button click handler
+				submitBtn.addEventListener('click', function(e) {
+					e.preventDefault(); // Prevent default to handle manually
+					
+					if (!submitBtn.disabled) {
+						// Show loading state
+						const btnText = submitBtn.querySelector('.btn-text');
+						const btnLoader = submitBtn.querySelector('.btn-loader');
+						if (btnText) btnText.style.display = 'none';
+						if (btnLoader) btnLoader.style.display = 'block';
+						submitBtn.disabled = true;
+						
+						// Submit the form
+						form.submit();
+					}
+				});
+			}
+
+			// Auto-focus on page load
+			if (codeInput) {
+				codeInput.focus();
+			}
+		});
+
+        // Auto-dismiss alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.transition = 'all 0.3s ease';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+
+		// Prevent basic XSS attempts
+		if (window.location.hash.includes('script') || window.location.search.includes('<')) {
+			window.location.href = '/totp';
+		}
+        
+        // Backup code functionality
+        function toggleBackupForm() {
+            const backupForm = document.getElementById('backupForm');
+            const isVisible = backupForm.style.display === 'block';
+            backupForm.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                const backupCodeInput = document.getElementById('backupCode');
+                if (backupCodeInput) {
+                    backupCodeInput.focus();
+                }
+            }
+        }
+        
+        // Backup code input handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const backupCodeInput = document.getElementById('backupCode');
+            const backupForm = document.getElementById('backupCodeForm');
+            const backupVerifyBtn = document.getElementById('backupVerifyBtn');
+            
+            if (backupCodeInput && backupVerifyBtn) {
+                // Function to validate backup code
+                function validateBackupCode() {
+                    const value = backupCodeInput.value.trim().toUpperCase();
+                    const isValid = /^[A-Z0-9]{8}$/.test(value);
+                    
+                    if (isValid) {
+                        backupCodeInput.classList.add('valid');
+                        backupCodeInput.classList.remove('invalid');
+                        backupVerifyBtn.disabled = false;
+                        backupVerifyBtn.style.opacity = '1';
+                    } else {
+                        backupCodeInput.classList.remove('valid');
+                        if (value.length > 0) {
+                            backupCodeInput.classList.add('invalid');
+                        } else {
+                            backupCodeInput.classList.remove('invalid');
+                        }
+                        backupVerifyBtn.disabled = true;
+                        backupVerifyBtn.style.opacity = '0.7';
+                    }
+                }
+                
+                // Input event handler
+                backupCodeInput.addEventListener('input', function() {
+                    // Only allow alphanumeric and convert to uppercase
+                    this.value = this.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 8);
+                    validateBackupCode();
+                    
+                    // Auto-submit when 8 characters are entered
+                    if (this.value.length === 8) {
+                        setTimeout(() => {
+                            if (this.value.length === 8 && !backupVerifyBtn.disabled) {
+                                const btnText = backupVerifyBtn.querySelector('.btn-text');
+                                const btnLoader = backupVerifyBtn.querySelector('.btn-loader');
+                                if (btnText) btnText.style.display = 'none';
+                                if (btnLoader) btnLoader.style.display = 'block';
+                                backupVerifyBtn.disabled = true;
+                                backupForm.submit();
+                            }
+                        }, 500);
+                    }
+                });
+                
+                // Paste handler
+                backupCodeInput.addEventListener('paste', function(e) {
+                    setTimeout(() => {
+                        let value = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase().substring(0, 8);
+                        e.target.value = value;
+                        validateBackupCode();
+                        
+                        if (value.length === 8) {
+                            setTimeout(() => {
+                                if (!backupVerifyBtn.disabled) {
+                                    const btnText = backupVerifyBtn.querySelector('.btn-text');
+                                    const btnLoader = backupVerifyBtn.querySelector('.btn-loader');
+                                    if (btnText) btnText.style.display = 'none';
+                                    if (btnLoader) btnLoader.style.display = 'block';
+                                    backupVerifyBtn.disabled = true;
+                                    backupForm.submit();
+                                }
+                            }, 100);
+                        }
+                    }, 0);
+                });
+                
+                // Initial validation
+                validateBackupCode();
+            }
+        });
+        
+        // Prevent multiple submissions
+        window.addEventListener('beforeunload', function() {
+            if (isSubmitting) {
+                return /*[[#{totp.auth.inprogress}]]*/ 'Authentication is in progress...';
+            }
+        });
+        
+        // Auto-refresh countdown animation sync
+        setInterval(() => {
+            const progressFill = document.querySelector('.progress-fill');
+            if (progressFill) {
+                progressFill.style.animation = 'none';
+                progressFill.offsetHeight; // Trigger reflow
+                progressFill.style.animation = 'countdown 30s linear infinite';
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
+
+

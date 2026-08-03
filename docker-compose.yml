@@ -1,0 +1,98 @@
+# version: "3.9"
+services:
+  # passwordless-app:
+  #   build: .
+  #   container_name: passwordless_app
+  #   ports:
+  #     - "8585:8585"
+  #   environment:
+  #     - SPRING_PROFILES_ACTIVE=prod
+  #     - DB_URL=jdbc:postgresql://postgres:5432/passwordlessdb
+  #     - DB_USERNAME=passwordless
+  #     - DB_PASSWORD=passwordless
+  #     - REDIS_HOST=redis
+  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
+  #     - MAIL_HOST=smtp.gmail.com
+  #     - MAIL_PORT=465 # 465 SSL, 587 TLS
+  #     - MAIL_USERNAME=user@example.com
+  #     - MAIL_PASSWORD=${MAIL_PASSWORD} 
+  #   volumes:
+  #     - ./logs:/app/logs # Write application logs to the host machine
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   networks:
+  #     - passwordless_network
+  postgres:
+    image: postgres:18.3-alpine
+    container_name: passwordless_postgres
+    environment:
+      POSTGRES_USER: passwordless
+      POSTGRES_PASSWORD: passwordless
+      POSTGRES_DB: passwordlessdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U passwordless"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - passwordless_network
+
+  redis:
+    image: redis:8.6.1-alpine
+    container_name: passwordless_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - passwordless_network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: passwordless_mailpit
+    restart: unless-stopped
+    volumes:
+      - ./data:/data
+    ports:
+      - 8025:8025
+      - 1025:1025
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    networks:
+      - passwordless_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: passwordless_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - passwordless_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  pgadmin_data:
+
+networks:
+  passwordless_network:
+    driver: bridge

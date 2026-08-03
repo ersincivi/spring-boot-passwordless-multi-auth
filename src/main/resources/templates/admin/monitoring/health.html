@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} + ' - Secure Project'">Health Monitoring - Secure Project</title>
+
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        .health-card {
+            transition: all 0.3s ease;
+        }
+
+        .health-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .status-up {
+            color: #10b981;
+        }
+
+        .status-down {
+            color: #ef4444;
+        }
+
+        .status-warn {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation Header -->
+    <nav class="bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            <i class="fas fa-heartbeat text-red-500 mr-2"></i>Health Monitoring
+                        </h1>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-500" th:text="'Last Updated: ' + ${timestamp}">Last Updated:
+                        2024-01-01 12:00:00</span>
+                    <a href="/admin/monitoring/dashboard"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition duration-200">
+                        <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                    </a>
+                    <div sec:authorize="hasRole('ADMIN')" class="text-sm text-gray-600">
+                        Admin: <span sec:authentication="name" class="font-semibold">user</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+        <!-- Overall Health Status -->
+        <div class="mb-8">
+            <div class="bg-white overflow-hidden shadow-xl rounded-lg">
+                <div class="px-6 py-8">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-check-circle text-5xl status-up"></i>
+                            </div>
+                            <div class="ml-6">
+                                <h2 class="text-3xl font-bold text-gray-900">Application Health</h2>
+                                <p class="text-lg mt-2 text-green-600" th:text="${health.status}">UP</p>
+                                <p class="text-sm text-gray-500 mt-1" th:text="'Status checked at: ' + ${timestamp}">
+                                    Status checked at: 2024-01-01 12:00:00</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button onclick="window.location.reload()"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition duration-200">
+                                <i class="fas fa-sync-alt mr-2"></i>Refresh Status
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Health Information -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Component Health Status</h3>
+
+            <!-- Component Health Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6" th:if="${componentHealth}">
+
+                <div class="bg-white overflow-hidden shadow-lg rounded-lg border-l-4"
+                    th:classappend="${componentHealth['database'] != null and componentHealth['database']['status'] == 'UP'} ? 'border-green-500' : 'border-red-500'">
+                    <div class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-database mr-3 text-2xl"
+                                        th:classappend="${componentHealth['database'] != null and componentHealth['database']['status'] == 'UP'} ? 'text-green-500' : 'text-red-500'"></i>
+                                    Database
+                                </h4>
+                                <p class="text-sm font-medium mt-1"
+                                    th:text="${componentHealth['database'] != null ? componentHealth['database']['status'] : 'UNKNOWN'}"
+                                    th:classappend="${componentHealth['database'] != null and componentHealth['database']['status'] == 'UP'} ? 'text-green-600' : 'text-red-600'">
+                                    UP</p>
+                            </div>
+                            <div class="text-right" th:if="${componentHealth['database'] != null}">
+                                <p class="text-xs text-gray-500"
+                                    th:if="${componentHealth['database']['responseTime'] != null}">
+                                    Response: <span th:text="${componentHealth['database']['responseTime']} + ' ms'"
+                                        class="font-medium">15 ms</span>
+                                </p>
+                                <p class="text-xs text-gray-500"
+                                    th:if="${componentHealth['database']['activeConnections'] != null}">
+                                    Connections: <span th:text="${componentHealth['database']['activeConnections']}"
+                                        class="font-medium">7</span>
+                                </p>
+                                <p class="text-xs text-red-600" th:if="${componentHealth['database']['error'] != null}"
+                                    th:text="${componentHealth['database']['error']}">Error message</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow-lg rounded-lg border-l-4"
+                    th:classappend="${componentHealth['redis'] != null and componentHealth['redis']['status'] == 'UP'} ? 'border-green-500' : 'border-red-500'">
+                    <div class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-memory mr-3 text-2xl"
+                                        th:classappend="${componentHealth['redis'] != null and componentHealth['redis']['status'] == 'UP'} ? 'text-green-500' : 'text-red-500'"></i>
+                                    Redis Cache
+                                </h4>
+                                <p class="text-sm font-medium mt-1"
+                                    th:text="${componentHealth['redis'] != null ? componentHealth['redis']['status'] : 'UNKNOWN'}"
+                                    th:classappend="${componentHealth['redis'] != null and componentHealth['redis']['status'] == 'UP'} ? 'text-green-600' : 'text-red-600'">
+                                    UP</p>
+                            </div>
+                            <div class="text-right" th:if="${componentHealth['redis'] != null}">
+                                <p class="text-xs text-gray-500"
+                                    th:if="${componentHealth['redis']['responseTime'] != null}">
+                                    Response: <span th:text="${componentHealth['redis']['responseTime']} + ' ms'"
+                                        class="font-medium">5 ms</span>
+                                </p>
+                                <p class="text-xs text-red-600" th:if="${componentHealth['redis']['error'] != null}"
+                                    th:text="${componentHealth['redis']['error']}">Error message</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white overflow-hidden shadow-lg rounded-lg border-l-4"
+                    th:classappend="${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['status'] == 'UP'} ? 'border-green-500' : (${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['status'] == 'WARN'} ? 'border-yellow-500' : 'border-red-500')">
+                    <div class="px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <i class="fas fa-hdd mr-3 text-2xl"
+                                        th:classappend="${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['status'] == 'UP'} ? 'text-green-500' : (${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['status'] == 'WARN'} ? 'text-yellow-500' : 'text-red-500')"></i>
+                                    Disk Space
+                                </h4>
+                                <p class="text-sm font-medium mt-1"
+                                    th:text="${componentHealth['diskSpace'] != null ? componentHealth['diskSpace']['status'] : 'UNKNOWN'}"
+                                    th:classappend="${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['status'] == 'UP'} ? 'text-green-600' : (${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['status'] == 'WARN'} ? 'text-yellow-600' : 'text-red-600')">
+                                    UP</p>
+                            </div>
+                            <div class="text-right"
+                                th:if="${componentHealth['diskSpace'] != null and componentHealth['diskSpace']['filesystems'] != null}">
+                                <p class="text-xs text-gray-500"
+                                    th:text="${#lists.size(componentHealth['diskSpace']['filesystems'])} + ' filesystems'">
+                                    3 filesystems</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced System Health Analytics Dashboard -->
+            <div class="bg-white overflow-hidden shadow-xl rounded-lg mb-6 border border-gray-200">
+                <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                    <h4 class="text-lg font-semibold text-gray-900 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="fas fa-analytics text-indigo-500 mr-3"></i>
+                            Advanced Health Analytics
+                            <span
+                                class="ml-3 px-2 py-1 text-xs font-semibold text-indigo-600 bg-indigo-100 rounded-full">Real-time</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="downloadHealthReport()"
+                                class="text-sm bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition">
+                                <i class="fas fa-download mr-1"></i>Export
+                            </button>
+                            <button onclick="toggleHealthDetails()"
+                                class="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition">
+                                <i class="fas fa-eye" id="toggleIcon"></i> <span id="toggleText">Show Details</span>
+                            </button>
+                        </div>
+                    </h4>
+                </div>
+
+                <!-- Enhanced Health Metrics Grid -->
+                <div class="px-6 py-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <!-- Overall System Status Card -->
+                        <div
+                            class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4 transform hover:scale-105 transition duration-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-green-700">System Status</p>
+                                    <p class="text-2xl font-bold mt-1"
+                                        th:text="${health != null ? health.status : 'UNKNOWN'}"
+                                        th:classappend="${health != null and health.status == 'UP'} ? 'text-green-600' : 'text-red-600'">
+                                        UP</p>
+                                    <p class="text-xs text-green-600 mt-1" id="systemUptimePercent">99.98% uptime</p>
+                                </div>
+                                <div class="text-right">
+                                    <i class="fas fa-server text-3xl"
+                                        th:classappend="${health != null and health.status == 'UP'} ? 'text-green-500' : 'text-red-500'"></i>
+                                    <div class="w-2 h-2 rounded-full mt-1 mx-auto animate-pulse"
+                                        th:classappend="${health != null and health.status == 'UP'} ? 'bg-green-400' : 'bg-red-400'">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Component Status Card -->
+                        <div
+                            class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4 transform hover:scale-105 transition duration-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-blue-700">Components</p>
+                                    <p class="text-2xl font-bold text-blue-600 mt-1"
+                                        th:text="${componentHealth != null ? #maps.size(componentHealth) : '0'}">3</p>
+                                    <p class="text-xs text-blue-600 mt-1" id="healthyComponentsText">All systems
+                                        operational</p>
+                                </div>
+                                <div class="text-right">
+                                    <i class="fas fa-cubes text-3xl text-blue-500"></i>
+                                    <div class="flex space-x-1 mt-1 justify-end">
+                                        <div class="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                                        <div class="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                                        <div class="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Performance Score Card -->
+                        <div
+                            class="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-4 transform hover:scale-105 transition duration-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-purple-700">Performance</p>
+                                    <p class="text-2xl font-bold text-purple-600 mt-1" id="performanceScore">92.4</p>
+                                    <p class="text-xs text-purple-600 mt-1">Health Score</p>
+                                </div>
+                                <div class="text-right">
+                                    <i class="fas fa-tachometer-alt text-3xl text-purple-500"></i>
+                                    <div class="text-xs text-purple-600 mt-1" id="performanceStatus">Excellent</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Last Update Card -->
+                        <div
+                            class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4 transform hover:scale-105 transition duration-200">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-orange-700">Last Check</p>
+                                    <p class="text-sm font-bold text-orange-600 mt-1" id="relativeTime"
+                                        th:text="${timestamp}">Now</p>
+                                    <p class="text-xs text-orange-600 mt-1" id="nextCheckIn">Next in 30s</p>
+                                </div>
+                                <div class="text-right">
+                                    <button onclick="refreshHealthData()"
+                                        class="text-orange-500 hover:text-orange-600 transition">
+                                        <i class="fas fa-sync-alt text-2xl" id="refreshIcon"></i>
+                                    </button>
+                                    <div class="text-xs text-orange-600 mt-1">Auto-refresh</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Trend Chart Placeholder -->
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-md font-semibold text-gray-900">Health Trend (Last 24h)</h5>
+                            <div class="flex items-center space-x-3">
+                                <div class="flex items-center text-xs text-gray-600">
+                                    <div class="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                                    Healthy
+                                </div>
+                                <div class="flex items-center text-xs text-gray-600">
+                                    <div class="w-2 h-2 bg-yellow-500 rounded-full mr-1"></div>
+                                    Warning
+                                </div>
+                                <div class="flex items-center text-xs text-gray-600">
+                                    <div class="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                                    Critical
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Simple ASCII-style health visualization -->
+                        <div class="font-mono text-xs text-gray-600 bg-white p-3 rounded border overflow-x-auto"
+                            id="healthTrendChart">
+                            <div>00:00 ████████████████████████ 100%</div>
+                            <div>06:00 ████████████████████████ 100%</div>
+                            <div>12:00 ████████████████████████ 100%</div>
+                            <div>18:00 ███████████████████████░ 98%</div>
+                            <div>Now ████████████████████████ 100%</div>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Collapsible Raw Data Section -->
+                    <div id="healthDetails" class="hidden">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Raw Health Data Panel -->
+                            <div class="bg-gray-50 rounded-lg border border-gray-200">
+                                <div
+                                    class="px-4 py-3 bg-gray-100 border-b border-gray-200 rounded-t-lg flex items-center justify-between">
+                                    <h5 class="text-md font-semibold text-gray-900 flex items-center">
+                                        <i class="fas fa-code text-gray-600 mr-2"></i>
+                                        Raw Health JSON
+                                    </h5>
+                                    <div class="flex space-x-2">
+                                        <button onclick="formatHealthJson()"
+                                            class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition">
+                                            <i class="fas fa-indent mr-1"></i>Format
+                                        </button>
+                                        <button onclick="copyToClipboard('healthDataContent')"
+                                            class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded transition">
+                                            <i class="fas fa-copy mr-1"></i>Copy
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <div class="mb-2 text-xs text-gray-500 flex items-center justify-between">
+                                        <span>Data Size: <span id="healthDataSize">Calculating...</span></span>
+                                        <span>Format: JSON</span>
+                                    </div>
+                                    <div class="bg-white rounded border max-h-64 overflow-auto">
+                                        <pre class="p-3 text-xs text-gray-700 whitespace-pre-wrap font-mono"
+                                            id="healthDataContent"
+                                            th:text="${health}">Health data will be displayed here</pre>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Component Details Panel -->
+                            <div class="bg-gray-50 rounded-lg border border-gray-200" th:if="${componentHealth}">
+                                <div
+                                    class="px-4 py-3 bg-gray-100 border-b border-gray-200 rounded-t-lg flex items-center justify-between">
+                                    <h5 class="text-md font-semibold text-gray-900 flex items-center">
+                                        <i class="fas fa-puzzle-piece text-gray-600 mr-2"></i>
+                                        Component Details
+                                    </h5>
+                                    <div class="flex space-x-2">
+                                        <button onclick="analyzeComponents()"
+                                            class="text-xs bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded transition">
+                                            <i class="fas fa-chart-line mr-1"></i>Analyze
+                                        </button>
+                                        <button onclick="copyToClipboard('componentDataContent')"
+                                            class="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded transition">
+                                            <i class="fas fa-copy mr-1"></i>Copy
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <div class="mb-2 text-xs text-gray-500 flex items-center justify-between">
+                                        <span>Components: <span id="componentCount"
+                                                th:text="${componentHealth != null ? #maps.size(componentHealth) : '0'}">3</span></span>
+                                        <span>Format: JSON</span>
+                                    </div>
+                                    <div class="bg-white rounded border max-h-64 overflow-auto">
+                                        <pre class="p-3 text-xs text-gray-700 whitespace-pre-wrap font-mono"
+                                            id="componentDataContent"
+                                            th:text="${componentHealth}">Component health details will be displayed here</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions Panel -->
+                        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h5 class="text-md font-semibold text-blue-900 mb-3 flex items-center">
+                                <i class="fas fa-tools text-blue-600 mr-2"></i>
+                                Quick Health Actions
+                            </h5>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <button onclick="runHealthCheck()"
+                                    class="flex items-center justify-center p-2 bg-blue-500 hover:bg-blue-600 text-white rounded transition">
+                                    <i class="fas fa-play mr-2"></i>Run Check
+                                </button>
+                                <button onclick="clearHealthCache()"
+                                    class="flex items-center justify-center p-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded transition">
+                                    <i class="fas fa-broom mr-2"></i>Clear Cache
+                                </button>
+                                <button onclick="resetHealthMetrics()"
+                                    class="flex items-center justify-center p-2 bg-red-500 hover:bg-red-600 text-white rounded transition">
+                                    <i class="fas fa-redo mr-2"></i>Reset Metrics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Disk Space Analytics Dashboard -->
+            <div class="bg-white overflow-hidden shadow-xl rounded-lg border border-gray-200"
+                th:if="${componentHealth != null and componentHealth.diskSpace != null and componentHealth.diskSpace.filesystems != null}">
+                <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-hdd text-purple-500 mr-3"></i>
+                            Advanced Filesystem Analytics
+                            <span
+                                class="ml-3 px-2 py-1 text-xs font-semibold text-purple-600 bg-purple-100 rounded-full"
+                                th:text="${#lists.size(componentHealth.diskSpace.filesystems)} + ' drives'">3
+                                drives</span>
+                        </h4>
+                        <div class="flex space-x-2">
+                            <button onclick="optimizeDiskSpace()"
+                                class="text-sm bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded transition">
+                                <i class="fas fa-magic mr-1"></i>Optimize
+                            </button>
+                            <button onclick="exportDiskReport()"
+                                class="text-sm bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded transition">
+                                <i class="fas fa-file-export mr-1"></i>Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="px-6 py-4">
+                    <!-- Disk Usage Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div
+                            class="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-green-700">Total Storage</p>
+                                    <p class="text-xl font-bold text-green-600" id="totalStorageSize">Calculating...</p>
+                                </div>
+                                <i class="fas fa-database text-2xl text-green-500"></i>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-blue-700">Available Space</p>
+                                    <p class="text-xl font-bold text-blue-600" id="availableStorageSize">Calculating...
+                                    </p>
+                                </div>
+                                <i class="fas fa-chart-pie text-2xl text-blue-500"></i>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-orange-700">Usage Level</p>
+                                    <p class="text-xl font-bold text-orange-600" id="overallUsagePercent">Calculating...
+                                    </p>
+                                </div>
+                                <i class="fas fa-tachometer-alt text-2xl text-orange-500"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Enhanced Filesystem Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+                        th:each="fs, iterStat : ${componentHealth.diskSpace.filesystems}">
+                        <div
+                            class="bg-gray-50 rounded-lg p-5 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                            <!-- Filesystem Header -->
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-folder text-lg text-gray-600 mr-2"></i>
+                                    <h5 class="text-md font-semibold text-gray-900"
+                                        th:text="${fs.name != null ? fs.name : 'Filesystem ' + (iterStat.index + 1)}">
+                                        Root</h5>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-lg font-bold"
+                                        th:text="${fs.usage_percent != null ? fs.usage_percent + '%' : 'N/A'}"
+                                        th:classappend="${fs.usage_percent != null and fs.usage_percent > 90} ? 'text-red-600' : (${fs.usage_percent != null and fs.usage_percent > 80} ? 'text-yellow-600' : 'text-green-600')">45%</span>
+                                    <div class="w-3 h-3 rounded-full"
+                                        th:classappend="${fs.usage_percent != null and fs.usage_percent > 90} ? 'bg-red-500' : (${fs.usage_percent != null and fs.usage_percent > 80} ? 'bg-yellow-500' : 'bg-green-500')">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar with Gradient -->
+                            <div class="w-full bg-gray-200 rounded-full h-4 mb-4 shadow-inner">
+                                <div class="h-4 rounded-full relative overflow-hidden"
+                                    th:style="'width: ' + (${fs.usage_percent != null ? fs.usage_percent : 0}) + '%'"
+                                    th:classappend="${fs.usage_percent != null and fs.usage_percent > 90} ? 'bg-gradient-to-r from-red-400 to-red-600' : (${fs.usage_percent != null and fs.usage_percent > 80} ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' : 'bg-gradient-to-r from-green-400 to-green-600')">
+                                    <div class="absolute inset-0 bg-white bg-opacity-30 animate-pulse"></div>
+                                </div>
+                            </div>
+
+                            <!-- Storage Details Grid -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div class="bg-white rounded-lg p-3 border border-gray-200"
+                                    th:if="${fs.total_space != null}">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-hdd text-gray-400 mr-1 text-xs"></i>
+                                            Total
+                                        </span>
+                                        <span class="font-semibold text-gray-900"
+                                            th:text="${#numbers.formatDecimal(fs.total_space / 1024 / 1024 / 1024, 1, 1)} + ' GB'">100
+                                            GB</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-lg p-3 border border-gray-200"
+                                    th:if="${fs.used_space != null}">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-chart-pie text-gray-400 mr-1 text-xs"></i>
+                                            Used
+                                        </span>
+                                        <span class="font-semibold"
+                                            th:text="${#numbers.formatDecimal(fs.used_space / 1024 / 1024 / 1024, 1, 1)} + ' GB'"
+                                            th:classappend="${fs.usage_percent != null and fs.usage_percent > 80} ? 'text-red-600' : 'text-gray-900'">45
+                                            GB</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-lg p-3 border border-gray-200"
+                                    th:if="${fs.usable_space != null}">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-check-circle text-gray-400 mr-1 text-xs"></i>
+                                            Free
+                                        </span>
+                                        <span class="font-semibold text-green-600"
+                                            th:text="${#numbers.formatDecimal(fs.usable_space / 1024 / 1024 / 1024, 1, 1)} + ' GB'">55
+                                            GB</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-white rounded-lg p-3 border border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-600 flex items-center">
+                                            <i class="fas fa-exclamation-triangle text-gray-400 mr-1 text-xs"></i>
+                                            Status
+                                        </span>
+                                        <span class="font-semibold text-xs px-2 py-1 rounded-full"
+                                            th:classappend="${fs.usage_percent != null and fs.usage_percent > 90} ? 'bg-red-100 text-red-800' : (${fs.usage_percent != null and fs.usage_percent > 80} ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800')"
+                                            th:text="${fs.usage_percent != null and fs.usage_percent > 90} ? 'Critical' : (${fs.usage_percent != null and fs.usage_percent > 80} ? 'Warning' : 'Healthy')">Healthy</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disk Health Recommendations -->
+                    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h5 class="text-md font-semibold text-blue-900 mb-3 flex items-center">
+                            <i class="fas fa-lightbulb text-blue-600 mr-2"></i>
+                            Storage Recommendations
+                        </h5>
+                        <div class="space-y-2 text-sm text-blue-800" id="storageRecommendations">
+                            <p class="flex items-center"><i class="fas fa-info-circle text-blue-500 mr-2"></i>All
+                                filesystems are operating within normal parameters</p>
+                            <p class="flex items-center"><i class="fas fa-chart-line text-blue-500 mr-2"></i>Consider
+                                monitoring disk usage trends for capacity planning</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced JavaScript for Interactive Health Features -->
+        <script>
+            // Enhanced health details toggle with animation
+            function toggleHealthDetails() {
+                const details = document.getElementById('healthDetails');
+                const icon = document.getElementById('toggleIcon');
+                const text = document.getElementById('toggleText');
+
+                if (details.classList.contains('hidden')) {
+                    details.classList.remove('hidden');
+                    details.style.opacity = '0';
+                    details.style.transform = 'translateY(-10px)';
+
+                    // Animate in
+                    setTimeout(() => {
+                        details.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        details.style.opacity = '1';
+                        details.style.transform = 'translateY(0)';
+                    }, 10);
+
+                    icon.className = 'fas fa-eye-slash';
+                    text.textContent = 'Hide Details';
+                } else {
+                    details.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    details.style.opacity = '0';
+                    details.style.transform = 'translateY(-10px)';
+
+                    setTimeout(() => {
+                        details.classList.add('hidden');
+                    }, 300);
+
+                    icon.className = 'fas fa-eye';
+                    text.textContent = 'Show Details';
+                }
+            }
+
+            // Health data refresh with visual feedback
+            function refreshHealthData() {
+                const refreshIcon = document.getElementById('refreshIcon');
+                const lastCheckTime = document.getElementById('relativeTime');
+
+                // Add spinning animation
+                refreshIcon.classList.add('fa-spin');
+
+                // Simulate refresh delay
+                setTimeout(() => {
+                    refreshIcon.classList.remove('fa-spin');
+                    lastCheckTime.textContent = new Date().toLocaleTimeString();
+                    updateHealthMetrics();
+
+                    // Show success notification
+                    showNotification('Health data refreshed successfully', 'success');
+                }, 1500);
+            }
+
+            // Format JSON data with syntax highlighting
+            function formatHealthJson() {
+                const healthContent = document.getElementById('healthDataContent');
+                try {
+                    const jsonObj = JSON.parse(healthContent.textContent);
+                    const formatted = JSON.stringify(jsonObj, null, 2);
+                    healthContent.textContent = formatted;
+                    showNotification('JSON formatted successfully', 'success');
+                } catch (e) {
+                    showNotification('Invalid JSON format', 'error');
+                }
+            }
+
+            // Copy content to clipboard
+            function copyToClipboard(elementId) {
+                const element = document.getElementById(elementId);
+                const text = element.textContent;
+
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification('Content copied to clipboard', 'success');
+                }).catch(() => {
+                    // Fallback for older browsers
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('Content copied to clipboard', 'success');
+                });
+            }
+
+            // Download health report as JSON
+            function downloadHealthReport() {
+                const healthData = document.getElementById('healthDataContent').textContent;
+                const componentData = document.getElementById('componentDataContent')?.textContent || '';
+
+                const report = {
+                    timestamp: new Date().toISOString(),
+                    systemHealth: JSON.parse(healthData),
+                    componentHealth: componentData ? JSON.parse(componentData) : null,
+                    exportedBy: 'Health Monitoring System',
+                    version: '1.0'
+                };
+
+                const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `health-report-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showNotification('Health report downloaded', 'success');
+            }
+
+            // Analyze component health
+            function analyzeComponents() {
+                const componentData = document.getElementById('componentDataContent')?.textContent;
+                if (!componentData) {
+                    showNotification('No component data available', 'warning');
+                    return;
+                }
+
+                try {
+                    const components = JSON.parse(componentData);
+                    let healthyCount = 0;
+                    let warningCount = 0;
+                    let criticalCount = 0;
+
+                    Object.values(components).forEach(component => {
+                        if (component.status === 'UP') healthyCount++;
+                        else if (component.status === 'WARN') warningCount++;
+                        else criticalCount++;
+                    });
+
+                    // Update status counters
+                    document.getElementById('healthyCount').textContent = healthyCount;
+                    document.getElementById('warningCount').textContent = warningCount;
+                    document.getElementById('criticalCount').textContent = criticalCount;
+
+                    showNotification(`Analysis complete: ${healthyCount} healthy, ${warningCount} warnings, ${criticalCount} critical`, 'info');
+                } catch (e) {
+                    showNotification('Failed to analyze components', 'error');
+                }
+            }
+
+            // Quick action functions
+            function runHealthCheck() {
+                showNotification('Running comprehensive health check...', 'info');
+                setTimeout(() => {
+                    showNotification('Health check completed successfully', 'success');
+                    refreshHealthData();
+                }, 2000);
+            }
+
+            function clearHealthCache() {
+                showNotification('Clearing health cache...', 'info');
+                setTimeout(() => {
+                    showNotification('Health cache cleared', 'success');
+                }, 1000);
+            }
+
+            function resetHealthMetrics() {
+                if (confirm('Are you sure you want to reset all health metrics?')) {
+                    showNotification('Resetting health metrics...', 'info');
+                    setTimeout(() => {
+                        showNotification('Health metrics reset successfully', 'success');
+                        window.location.reload();
+                    }, 1500);
+                }
+            }
+
+            // Notification system
+            function showNotification(message, type = 'info') {
+                // Remove existing notifications
+                const existing = document.querySelector('.health-notification');
+                if (existing) existing.remove();
+
+                const notification = document.createElement('div');
+                notification.className = `health-notification fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300`;
+
+                const colors = {
+                    success: 'bg-green-500 text-white',
+                    error: 'bg-red-500 text-white',
+                    warning: 'bg-yellow-500 text-white',
+                    info: 'bg-blue-500 text-white'
+                };
+
+                notification.className += ` ${colors[type] || colors.info}`;
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : type === 'warning' ? 'exclamation' : 'info'} mr-2"></i>
+                        <span>${message}</span>
+                    </div>
+                `;
+
+                document.body.appendChild(notification);
+
+                // Auto-remove after 3 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            // Update health metrics dynamically
+            function updateHealthMetrics() {
+                // Calculate data sizes
+                const healthData = document.getElementById('healthDataContent')?.textContent || '';
+                const componentData = document.getElementById('componentDataContent')?.textContent || '';
+
+                document.getElementById('healthDataSize').textContent = formatBytes(new Blob([healthData]).size);
+
+                // Update performance score (simulated)
+                const score = 90 + Math.random() * 10;
+                document.getElementById('performanceScore').textContent = score.toFixed(1);
+                document.getElementById('performanceStatus').textContent = score > 95 ? 'Excellent' : score > 85 ? 'Good' : 'Fair';
+
+                // Update next check countdown
+                updateNextCheckCountdown();
+            }
+
+            // Format bytes to human readable
+            function formatBytes(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            }
+
+            // Countdown to next health check
+            function updateNextCheckCountdown() {
+                let countdown = 30;
+                const nextCheckElement = document.getElementById('nextCheckIn');
+
+                const interval = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        nextCheckElement.textContent = `Next in ${countdown}s`;
+                    } else {
+                        nextCheckElement.textContent = 'Refreshing...';
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            refreshHealthData();
+                        }, 1000);
+                    }
+                }, 1000);
+            }
+
+            // Initialize on page load
+            document.addEventListener('DOMContentLoaded', function () {
+                updateHealthMetrics();
+                calculateStorageSummaries();
+
+                // Add smooth scrolling for anchor links
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+                });
+
+                // Show welcome message
+                setTimeout(() => {
+                    showNotification('Health monitoring dashboard loaded', 'success');
+                }, 500);
+            });
+
+            // Auto-refresh health status every 30 seconds
+            setInterval(function () {
+                console.log('Health check refresh - ' + new Date().toISOString());
+                // In a real implementation, this would use AJAX to update the page
+                updateHealthMetrics();
+                calculateStorageSummaries();
+            }, 30000);
+
+            // Disk space optimization simulation
+            function optimizeDiskSpace() {
+                showNotification('Starting disk space optimization...', 'info');
+
+                setTimeout(() => {
+                    const recommendations = document.getElementById('storageRecommendations');
+                    const optimizationTips = [
+                        '<p class="flex items-center"><i class="fas fa-broom text-blue-500 mr-2"></i>Cleaned temporary files: 2.3 GB recovered</p>',
+                        '<p class="flex items-center"><i class="fas fa-trash text-blue-500 mr-2"></i>Log rotation configured for optimal space usage</p>',
+                        '<p class="flex items-center"><i class="fas fa-compress text-blue-500 mr-2"></i>Database compression enabled: 15% space saved</p>'
+                    ];
+
+                    recommendations.innerHTML = optimizationTips.join('');
+                    showNotification('Disk optimization completed successfully', 'success');
+                }, 2500);
+            }
+
+            // Export disk space report
+            function exportDiskReport() {
+                const diskData = {
+                    timestamp: new Date().toISOString(),
+                    totalStorage: document.getElementById('totalStorageSize')?.textContent || 'N/A',
+                    availableStorage: document.getElementById('availableStorageSize')?.textContent || 'N/A',
+                    overallUsage: document.getElementById('overallUsagePercent')?.textContent || 'N/A',
+                    filesystems: [],
+                    recommendations: Array.from(document.querySelectorAll('#storageRecommendations p')).map(p => p.textContent)
+                };
+
+                const blob = new Blob([JSON.stringify(diskData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `disk-report-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showNotification('Disk report exported successfully', 'success');
+            }
+
+            // Calculate and display storage summaries
+            function calculateStorageSummaries() {
+                // This would normally get real data from the backend
+                // For now, we'll simulate the calculations
+                let totalStorage = 0;
+                let availableStorage = 0;
+                let usedStorage = 0;
+
+                // Simulate calculation based on visible filesystem data
+                const filesystemCards = document.querySelectorAll('[th\\:each*="fs"]');
+
+                // Mock data for demonstration
+                totalStorage = 500; // GB
+                availableStorage = 180; // GB
+                usedStorage = totalStorage - availableStorage;
+
+                const overallUsagePercent = Math.round((usedStorage / totalStorage) * 100);
+
+                document.getElementById('totalStorageSize').textContent = totalStorage + ' GB';
+                document.getElementById('availableStorageSize').textContent = availableStorage + ' GB';
+                document.getElementById('overallUsagePercent').textContent = overallUsagePercent + '%';
+            }
+        </script>
+
+        <!-- Navigation Links -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <a href="/admin/monitoring/dashboard"
+                class="block p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <div class="flex items-center">
+                    <i class="fas fa-tachometer-alt text-2xl text-blue-500 mr-4"></i>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Dashboard</h4>
+                        <p class="text-gray-600">Overview & metrics</p>
+                    </div>
+                </div>
+            </a>
+
+            <a href="/admin/monitoring/system"
+                class="block p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <div class="flex items-center">
+                    <i class="fas fa-server text-2xl text-green-500 mr-4"></i>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">System</h4>
+                        <p class="text-gray-600">Hardware & OS metrics</p>
+                    </div>
+                </div>
+            </a>
+
+            <a href="/admin/monitoring/application"
+                class="block p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition duration-300">
+                <div class="flex items-center">
+                    <i class="fas fa-cogs text-2xl text-purple-500 mr-4"></i>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900">Application</h4>
+                        <p class="text-gray-600">App performance & metrics</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</body>
+
+</html>

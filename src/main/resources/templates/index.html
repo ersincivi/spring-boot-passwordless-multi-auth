@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- CSRF tokens (only if CSRF is enabled) -->
+	<meta name="_csrf" th:if="${_csrf}" th:content="${_csrf.token}"/>
+	<meta name="_csrf_header" th:if="${_csrf}" th:content="${_csrf.headerName}"/>
+	
+	<!-- Basic Security Headers (X-Frame-Options and CSP are set via HTTP headers) -->
+	<meta http-equiv="X-Content-Type-Options" content="nosniff">
+	<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+	<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+
+	<title th:text="#{app.title}">Passwordless Multi-Auth - Secure Web Application</title>
+	
+	<script th:nonce="${nonce}">
+		// Nonce for inline scripts
+		window.cspNonce = /*[[${nonce}]]*/ '';
+	</script>
+	
+	<style>
+		/* Reset and base styles */
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+
+		.main-container {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+			padding: 30px;
+			width: 100%;
+			max-width: 600px;
+			text-align: center;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+		}
+
+		.header-container {
+			margin-bottom: 40px;
+		}
+
+		.welcome-logo {
+			margin-bottom: 30px;
+		}
+
+		.welcome-logo .logo {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 10px;
+		}
+
+		.logo img {
+			width: 100px;
+			height: auto;
+		}
+
+		.welcome-logo .logo .logo-text {
+			text-decoration: none;
+			font-size: 2.5rem;
+			color: #333;
+			text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+		}
+
+		.welcome-title {
+			font-size: 1.5rem;
+			font-weight: 600;
+			color: #333;
+			margin-bottom: 12px;
+		}
+
+		.welcome-subtitle {
+			color: #666;
+			font-size: 1.1rem;
+			margin-bottom: 30px;
+			line-height: 1.6;
+		}
+
+		/* Language Selector Styles */
+		.language-selector {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			z-index: 10;
+		}
+
+		.language-dropdown-container {
+			position: relative;
+			display: inline-block;
+		}
+
+		.language-current {
+			background: rgba(255, 255, 255, 0.9);
+			border: 2px solid rgba(102, 126, 234, 0.3);
+			border-radius: 12px;
+			padding: 10px 15px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			font-size: 0.9rem;
+			font-weight: 500;
+			color: #333;
+			backdrop-filter: blur(5px);
+		}
+
+		.language-current:hover {
+			border-color: #667eea;
+			box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+			transform: translateY(-2px);
+		}
+
+		.current-flag {
+			font-size: 1.2rem;
+		}
+
+		.current-lang {
+			font-weight: 600;
+			color: #333;
+		}
+
+		.dropdown-arrow {
+			width: 16px;
+			height: 16px;
+			transition: transform 0.3s ease;
+		}
+
+		.language-current[aria-expanded="true"] .dropdown-arrow {
+			transform: rotate(180deg);
+		}
+
+		.language-dropdown {
+			position: absolute;
+			top: 100%;
+			right: 0;
+			margin-top: 8px;
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 12px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+			border: 1px solid rgba(255, 255, 255, 0.3);
+			min-width: 160px;
+			max-height: 0;
+			overflow: hidden;
+			transition: all 0.3s ease;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-10px);
+		}
+
+		.language-dropdown.show {
+			max-height: 200px;
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+
+		.language-option {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 12px 16px;
+			text-decoration: none;
+			color: #333;
+			transition: all 0.2s ease;
+			font-size: 0.9rem;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+		}
+
+		.language-option:last-child {
+			border-bottom: none;
+		}
+
+		.language-option:hover {
+			background: rgba(102, 126, 234, 0.1);
+			color: #667eea;
+		}
+
+		.language-option.active {
+			background: rgba(102, 126, 234, 0.15);
+			color: #667eea;
+			font-weight: 600;
+		}
+
+		.flag-icon {
+			font-size: 1.2rem;
+		}
+
+		/* Action Buttons */
+		.actions {
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+			margin-top: 30px;
+		}
+
+		.btn {
+			padding: 15px 30px;
+			border-radius: 12px;
+			text-decoration: none;
+			font-weight: 600;
+			font-size: 1rem;
+			transition: all 0.3s ease;
+			display: inline-block;
+			text-align: center;
+			border: none;
+			cursor: pointer;
+		}
+
+		.btn-primary {
+			background:#4A44D6;
+			color: white;
+		}
+
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 10px 25px rgba(74, 68, 214, 0.4);
+		}
+
+		.btn-outline {
+			background: transparent;
+			border: 2px solid #4A44D6;
+			color: #4A44D6;
+		}
+
+		.btn-outline:hover {
+			background: #4a44d6;
+			color: white;
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(74, 68, 214, 0.3);
+		}
+
+		.btn-google {
+			background: white;
+			border: 2px solid #e1e1e1;
+			color: #333;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 12px;
+		}
+
+		.btn-google:hover {
+			border-color: #4a44d6;
+			box-shadow: 0 5px 15px rgba(74, 68, 214, 0.2);
+			transform: translateY(-2px);
+		}
+
+		.google-icon {
+			width: 20px;
+			height: 20px;
+		}
+
+		/* Features Section */
+		.features {
+			margin-top: 40px;
+			text-align: left;
+		}
+
+		.features h3 {
+			color: #333;
+			font-size: 1.3rem;
+			margin-bottom: 20px;
+			text-align: center;
+		}
+
+		.feature-list {
+			list-style: none;
+			padding: 0;
+		}
+
+		.feature-item {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 8px 0;
+			color: #666;
+			font-size: 0.95rem;
+		}
+
+		.feature-icon {
+			color: #667eea;
+			font-size: 1.1rem;
+		}
+
+		/* Footer */
+		.footer {
+			position: fixed;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			text-align: center;
+			color: rgba(255, 255, 255, 0.8);
+			font-size: 0.85rem;
+		}
+
+		/* Mobile responsiveness */
+		@media (max-width: 768px) {
+			.main-container {
+				padding: 30px 20px;
+				margin: 10px;
+				max-width: none;
+			}
+
+			.logo {
+				font-size: 2.5rem;
+			}
+
+			.welcome-title {
+				font-size: 1.8rem;
+			}
+
+			.language-selector {
+				position: absolute;
+				top: 20px;
+				right: 20px;
+			}
+
+			.actions {
+				gap: 12px;
+			}
+
+			.btn {
+				padding: 12px 25px;
+				font-size: 0.95rem;
+			}
+		}
+
+		/* Focus improvements for accessibility */
+		input:focus-visible,
+		button:focus-visible,
+		a:focus-visible {
+			outline: 3px solid #667eea;
+			outline-offset: 2px;
+		}
+
+		/* Visually hidden utility */
+		.visually-hidden {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			padding: 0;
+			margin: -1px;
+			overflow: hidden;
+			clip: rect(0, 0, 0, 0);
+			white-space: nowrap;
+			border: 0;
+		}
+	</style>
+</head>
+<body>
+	<div th:replace="~{fragments/lang :: lang}"></div>
+	
+	<div class="main-container">
+		<div class="header-container">
+			<div class="welcome-logo">
+				<div class="logo">
+					<a href="/">
+					<img src="/images/logo/logo.webp" alt="Logo">
+				</a>
+				</div>
+                <div sec:authorize="isAnonymous()">
+                    <h1 class="welcome-title" th:text="#{welcome}">Welcome to Passwordless Multi-Auth</h1>
+                </div>
+				<div sec:authorize="isAuthenticated()">
+				<!-- <h1 class="welcome-title" th:text="#{hello} + ', ' + ${#authentication.name}">Welcome to Passwordless Multi-Auth</h1> -->
+                <h1 class="welcome-title" th:text="#{hello} + ', ' + ${#authentication.principal.displayName}">Welcome to Passwordless Multi-Auth</h1>
+				<!-- <p>Name: <span th:text="${#authentication.principal.displayName}"></span></p> -->
+                <p>Email: <span th:text="${#authentication.principal.email}"></span></p>
+                </div>
+			</div>
+		</div>
+
+		<!-- Google One Tap Login Prompt
+
+		     Replace the placeholder below with your own OAuth client ID from
+		     Google Cloud Console -> APIs & Services -> Credentials, and use the
+		     SAME value in the google.accounts.id.initialize(...) call further
+		     down this file. A client ID is public by design (the browser sees
+		     it), but it is tied to your own Google project, so the shipped
+		     placeholder keeps One Tap disabled until you supply yours. The
+		     matching secret belongs in .env as GOOGLE_CLIENT_SECRET.
+		-->
+		<div sec:authorize="isAnonymous()" id="g_id_onload"
+		     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+		     data-callback="handleGoogleOneTapResponse"
+		     data-auto_prompt="true"
+		     data-cancel_on_tap_outside="false"
+		     data-context="signin"
+		     data-itp_support="true"
+		     data-use_fedcm_for_prompt="true">
+		</div>
+		
+		<!-- Fallback: Manual Google Sign-In Button (if One Tap doesn't appear) -->
+		<div sec:authorize="isAnonymous()" id="g_id_signin" 
+		     data-type="standard"
+		     data-shape="rectangular"
+		     data-theme="outline"
+		     data-text="signin_with"
+		     data-size="large"
+		     data-logo_alignment="left"
+		     style="display: none; margin: 20px auto; max-width: 400px;">
+		</div>
+		
+		<div class="actions">
+			<th:block sec:authorize="isAnonymous()">
+				<a class="btn btn-primary" th:href="@{/login}" th:text="#{nav.login}">
+					<span>Sign In to Your Account</span>
+				</a>
+
+				<a class="btn btn-outline" th:href="@{/register}" th:text="#{nav.register}">
+					<span>Create New Account</span>
+				</a>
+			</th:block>
+
+			<th:block sec:authorize="isAuthenticated()">
+				<form th:action="@{/logout}" method="post" style="display: contents;">
+					<button type="submit" class="btn btn-primary">
+						<span th:text="#{nav.logout}">Sign Out</span>
+					</button>
+				</form>
+				<!-- <span sec:authentication="name" class="user-name">Username</span> -->
+			</th:block>
+		</div>
+	</div>
+	
+	<div class="footer">
+		<p>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span> Passwordless Multi-Auth - Secure by Design</p>
+	</div>
+	
+	<!-- Google One Tap Login Script - ONLY for anonymous users - Loaded at end to prevent page rendering issues -->
+	<script sec:authorize="isAnonymous()" src="https://accounts.google.com/gsi/client" async defer></script>
+	
+	<!-- Google One Tap Login Script - ONLY for anonymous users -->
+	<script sec:authorize="isAnonymous()" th:nonce="${nonce}">
+		// Google One Tap Login Response Handler
+		function handleGoogleOneTapResponse(response) {
+			// Get CSRF token
+			const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;
+			const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content;
+			
+			// Send credential to backend for verification
+			fetch('/auth/google-one-tap', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					[csrfHeader]: csrfToken
+				},
+				body: JSON.stringify({
+					credential: response.credential
+				})
+			})
+			.then(response => {
+				if (response.ok) {
+					return response.json();
+				}
+
+				// Handle error responses
+				return response.json().then(errorData => {
+					const errorMessage = errorData.message || 'Authentication failed';
+					throw new Error(errorMessage);
+				});
+			})
+			.then(data => {
+				// Redirect to home page or dashboard
+				window.location.href = data.redirectUrl || '/';
+			})
+			.catch(error => {
+				console.error('Google One Tap authentication error:', error);
+				// Optionally show error message to user
+				alert(error.message);
+			});
+		}
+		
+		// Initialize Google One Tap and show fallback button if needed
+		document.addEventListener('DOMContentLoaded', function() {
+			// Wait for Google Identity Services to load
+			if (window.google && window.google.accounts) {
+				// Initialize the Google Sign-In button as fallback
+				try {
+					google.accounts.id.initialize({
+						// Same OAuth client ID as the data-client_id attribute above.
+						// Put your own value in both places - they must match.
+						client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+						callback: handleGoogleOneTapResponse,
+						auto_select: false,
+						cancel_on_tap_outside: false
+					});
+
+					google.accounts.id.prompt((notification) => {
+						if (notification.getSkippedReason() === 'tap_outside') {
+							google.accounts.id.prompt();
+						}
+					});
+					
+					// Render the sign-in button
+					const buttonDiv = document.getElementById('g_id_signin');
+					if (buttonDiv) {
+						google.accounts.id.renderButton(
+							buttonDiv,
+							{
+								theme: 'outline',
+								size: 'large',
+								type: 'standard',
+								text: 'signin_with',
+								shape: 'rectangular',
+								logo_alignment: 'left'
+							}
+						);
+					}
+					
+					// Try to show One Tap prompt
+					google.accounts.id.prompt((notification) => {
+						if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+							// One Tap not shown - display the fallback button
+							console.log('Google One Tap not displayed, showing fallback button');
+							if (buttonDiv) {
+								buttonDiv.style.display = 'block';
+							}
+						}
+					});
+				} catch (error) {
+					console.warn('Google One Tap initialization error:', error);
+					// Show fallback button on error
+					const buttonDiv = document.getElementById('g_id_signin');
+					if (buttonDiv) {
+						buttonDiv.style.display = 'block';
+					}
+				}
+			}
+		});
+	</script>
+	
+	<!-- Common page functionality - for all users -->
+	<script th:nonce="${nonce}">
+		document.addEventListener('DOMContentLoaded', function() {
+			const languageToggle = document.getElementById('language-toggle');
+			const languageDropdown = document.getElementById('language-dropdown');
+			
+			if (languageToggle && languageDropdown) {
+				languageToggle.addEventListener('click', function(e) {
+					e.preventDefault();
+					const isExpanded = this.getAttribute('aria-expanded') === 'true';
+					
+					this.setAttribute('aria-expanded', !isExpanded);
+					languageDropdown.classList.toggle('show');
+				});
+				
+				// Close dropdown when clicking outside
+				document.addEventListener('click', function(e) {
+					if (!languageToggle.contains(e.target) && !languageDropdown.contains(e.target)) {
+						languageToggle.setAttribute('aria-expanded', 'false');
+						languageDropdown.classList.remove('show');
+					}
+				});
+				
+				// Keyboard navigation
+				languageToggle.addEventListener('keydown', function(e) {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						this.click();
+					}
+					if (e.key === 'Escape') {
+						this.setAttribute('aria-expanded', 'false');
+						languageDropdown.classList.remove('show');
+					}
+				});
+			}
+		});
+		
+		// Security event logging
+		window.addEventListener('error', function(e) {
+			console.warn('Security: Script error detected', e.filename);
+		});
+		
+		// Prevent basic XSS attempts
+		if (window.location.hash.includes('script') || window.location.search.includes('<')) {
+			window.location.href = '/';
+		}
+	</script>
+	
+	<!-- Save Last Login Info to localStorage (for OAuth and Email logins) -->
+	<script src="/js/last-login-service.js" th:nonce="${nonce}"></script>
+
+	<script sec:authorize="isAuthenticated()" th:nonce="${nonce}" th:inline="javascript">
+		// Save user login info to localStorage for "Continue with this account" feature
+		if (window.LastLoginService) {
+			try {
+				// Get user data directly from authentication principal
+				// Try multiple property access patterns for compatibility
+                const userEmail = /*[[${#authentication.principal.email}]]*/ '' || '';
+                let userName = /*[[${#authentication.principal.displayName}]]*/ '';
+                const profileImage = /*[[${#authentication.principal.profileImage}]]*/ '' || '';
+				
+				// Determine login method - check if user has oauthProvider set (OAuth2 login)
+				let loginMethod = '';
+				try {
+					// Access oauthProvider from the User entity (works for both OAuth2 and email login)
+					const oauthProvider = /*[[${#authentication?.principal?.user?.oauthProvider}]]*/ null;
+
+					if (oauthProvider !== null && oauthProvider && oauthProvider.trim() !== '') {
+						loginMethod = oauthProvider;
+					} else {
+                        loginMethod = 'email';
+					}
+				} catch (e) {
+					// Fallback to email if property access fails
+					console.warn('⚠️ Could not access oauthProvider, defaulting to email:', e.message);
+				}
+				
+				// Clean up userName - if it's null, undefined, or empty string, use email prefix
+				if (!userName || userName.trim() === '') {
+					userName = userEmail.split('@')[0];
+				} else {
+					userName = userName.trim();
+				}
+				
+				const dataToSave = {
+					email: userEmail,
+					userName: userName,
+					loginMethod: loginMethod || 'email',
+					profileImageUrl: profileImage || null
+				};
+				
+				LastLoginService.saveLastLogin(dataToSave);
+				
+				// Verify what was saved
+				// const saved = localStorage.getItem('lastLogin');
+				// console.log('✓ Saved to localStorage:', saved);
+			} catch (error) {
+				console.error('✗ Error saving last login info:', error);
+				console.error('Error stack:', error.stack);
+			}
+		}
+	</script>
+</body>
+</html>

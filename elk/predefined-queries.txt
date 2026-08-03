@@ -1,0 +1,558 @@
+# ELK Stack Predefined Queries for Security and Application Monitoring
+# Use these queries in Kibana's Discover or Dashboard visualizations
+
+## SECURITY MONITORING QUERIES
+
+# 1. Failed Login Attempts in Last Hour
+GET security-audit-*/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "audit.eventType": "LOGIN_FAILURE"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc"
+      }
+    }
+  ],
+  "aggs": {
+    "failed_by_ip": {
+      "terms": {
+        "field": "source_ip",
+        "size": 10
+      }
+    },
+    "failed_by_user": {
+      "terms": {
+        "field": "audit.userId",
+        "size": 10
+      }
+    }
+  }
+}
+
+# 2. Brute Force Attack Detection - Multiple Failed Logins from Same IP
+GET security-audit-*/_search
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "audit.eventType": "LOGIN_FAILURE"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-15m"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "potential_brute_force": {
+      "terms": {
+        "field": "source_ip",
+        "min_doc_count": 5,
+        "size": 20
+      },
+      "aggs": {
+        "attempts_over_time": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "1m"
+          }
+        },
+        "targeted_users": {
+          "terms": {
+            "field": "audit.userId",
+            "size": 5
+          }
+        }
+      }
+    }
+  }
+}
+
+# 3. Account Lockouts and Security Events
+GET security-audit-*/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "term": {
+            "audit.eventType": "ACCOUNT_LOCKED"
+          }
+        },
+        {
+          "term": {
+            "audit.eventType": "SUSPICIOUS_ACTIVITY"
+          }
+        },
+        {
+          "term": {
+            "threat_level": "high"
+          }
+        }
+      ],
+      "minimum_should_match": 1,
+      "must": [
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-24h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+# 4. Successful Logins After Failed Attempts (Potential Compromise)
+GET security-audit-*/_search
+{
+  "size": 0,
+  "query": {
+    "range": {
+      "@timestamp": {
+        "gte": "now-1h"
+      }
+    }
+  },
+  "aggs": {
+    "user_login_patterns": {
+      "terms": {
+        "field": "audit.userId",
+        "size": 50
+      },
+      "aggs": {
+        "login_events": {
+          "terms": {
+            "field": "audit.eventType"
+          }
+        },
+        "ip_addresses": {
+          "terms": {
+            "field": "source_ip",
+            "size": 5
+          }
+        }
+      }
+    }
+  }
+}
+
+# 5. Rate Limiting Violations
+GET security-audit-*/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "audit.eventType": "RATE_LIMIT_EXCEEDED"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-30m"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "violations_by_ip": {
+      "terms": {
+        "field": "source_ip",
+        "size": 15
+      },
+      "aggs": {
+        "violations_over_time": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "5m"
+          }
+        }
+      }
+    }
+  }
+}
+
+## APPLICATION MONITORING QUERIES
+
+# 6. Application Errors and Exceptions
+GET application-logs-*/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "log_level": "ERROR"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-2h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc"
+      }
+    }
+  ],
+  "aggs": {
+    "errors_by_class": {
+      "terms": {
+        "field": "class_name",
+        "size": 10
+      }
+    },
+    "errors_over_time": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "fixed_interval": "10m"
+      }
+    }
+  }
+}
+
+# 7. Stack Traces and Exception Details
+GET application-logs-*/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "has_exception": "true"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ],
+      "should": [
+        {
+          "match": {
+            "log_message": "Exception"
+          }
+        },
+        {
+          "match": {
+            "log_message": "Error"
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "@timestamp": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+# 8. Performance Monitoring - Response Times
+GET application-logs-*/_search
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "exists": {
+            "field": "response_time"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "response_time_stats": {
+      "stats": {
+        "field": "response_time"
+      }
+    },
+    "response_time_percentiles": {
+      "percentiles": {
+        "field": "response_time",
+        "percents": [50, 75, 90, 95, 99]
+      }
+    },
+    "slow_requests": {
+      "range": {
+        "field": "response_time",
+        "ranges": [
+          {
+            "from": 1000,
+            "to": 5000,
+            "key": "slow_1s_5s"
+          },
+          {
+            "from": 5000,
+            "key": "very_slow_5s_plus"
+          }
+        ]
+      }
+    }
+  }
+}
+
+# 9. Memory Usage Patterns
+GET application-logs-*/_search
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "exists": {
+            "field": "memory_usage"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-6h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "memory_over_time": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "fixed_interval": "30m"
+      },
+      "aggs": {
+        "avg_memory": {
+          "avg": {
+            "field": "memory_usage"
+          }
+        },
+        "max_memory": {
+          "max": {
+            "field": "memory_usage"
+          }
+        }
+      }
+    },
+    "memory_stats": {
+      "stats": {
+        "field": "memory_usage"
+      }
+    }
+  }
+}
+
+# 10. Database Query Analysis
+GET application-logs-*/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "tags": "sql"
+          }
+        },
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "sql_operations": {
+      "terms": {
+        "script": {
+          "source": """
+            def message = doc['log_message.keyword'].value;
+            if (message.contains('SELECT')) return 'SELECT';
+            if (message.contains('INSERT')) return 'INSERT';
+            if (message.contains('UPDATE')) return 'UPDATE';
+            if (message.contains('DELETE')) return 'DELETE';
+            return 'OTHER';
+          """
+        }
+      }
+    }
+  }
+}
+
+## COMBINED SECURITY AND APPLICATION QUERIES
+
+# 11. Correlation: Authentication Events and Application Errors
+GET */_search
+{
+  "size": 0,
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "range": {
+            "@timestamp": {
+              "gte": "now-1h"
+            }
+          }
+        }
+      ],
+      "should": [
+        {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "audit.eventType": "LOGIN_FAILURE"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "bool": {
+            "must": [
+              {
+                "term": {
+                  "log_level": "ERROR"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "events_by_type": {
+      "filters": {
+        "filters": {
+          "security_events": {
+            "term": {
+              "log_type": "security_audit"
+            }
+          },
+          "application_errors": {
+            "term": {
+              "log_level": "ERROR"
+            }
+          }
+        }
+      },
+      "aggs": {
+        "events_over_time": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "fixed_interval": "5m"
+          }
+        }
+      }
+    }
+  }
+}
+
+# 12. System Health Overview - Last 24 Hours
+GET */_search
+{
+  "size": 0,
+  "query": {
+    "range": {
+      "@timestamp": {
+        "gte": "now-24h"
+      }
+    }
+  },
+  "aggs": {
+    "log_levels": {
+      "terms": {
+        "field": "log_level",
+        "missing": "INFO"
+      }
+    },
+    "security_events": {
+      "terms": {
+        "field": "audit.eventType",
+        "size": 10
+      }
+    },
+    "threat_levels": {
+      "terms": {
+        "field": "threat_level",
+        "missing": "none"
+      }
+    },
+    "activity_timeline": {
+      "date_histogram": {
+        "field": "@timestamp",
+        "fixed_interval": "1h"
+      },
+      "aggs": {
+        "log_types": {
+          "terms": {
+            "field": "log_type",
+            "size": 5
+          }
+        }
+      }
+    }
+  }
+}

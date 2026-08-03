@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">System Metrics</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .metric-card { transition: all 0.3s ease; }
+        .metric-card:hover { transform: scale(1.02); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .progress-bar { background: linear-gradient(90deg, #10b981, #34d399); }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- Header -->
+    <div class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-white">
+                        <i class="fas fa-server mr-3"></i>System Metrics
+                    </h1>
+                    <p class="text-gray-200 mt-1">Comprehensive hardware and operating system monitoring</p>
+                </div>
+                <a href="/admin/monitoring/dashboard" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+        <!-- CPU Metrics -->
+        <div class="bg-white shadow-lg rounded-lg mb-6 metric-card">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-microchip text-blue-600 mr-2"></i>CPU Information
+                </h2>
+            </div>
+            <div class="p-6" th:if="${systemMetrics.cpu}">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <i class="fas fa-info-circle text-2xl text-blue-600 mb-2"></i>
+                        <h3 class="font-medium text-gray-900">Processor</h3>
+                        <p class="text-sm text-gray-600 break-all" th:text="${systemMetrics.cpu.name}">Intel Core i7</p>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <i class="fas fa-layer-group text-2xl text-green-600 mb-2"></i>
+                        <h3 class="font-medium text-gray-900">Cores</h3>
+                        <p class="text-lg font-bold text-gray-900" 
+                           th:text="${systemMetrics.cpu.cores_physical} + ' / ' + ${systemMetrics.cpu.cores_logical}">4 / 8</p>
+                        <p class="text-xs text-gray-500">Physical / Logical</p>
+                    </div>
+                    <div class="text-center p-4 bg-purple-50 rounded-lg">
+                        <i class="fas fa-tachometer-alt text-2xl text-purple-600 mb-2"></i>
+                        <h3 class="font-medium text-gray-900">Frequency</h3>
+                        <p class="text-lg font-bold text-gray-900" th:text="${systemMetrics.cpu.frequency_current} + ' MHz'">2400 MHz</p>
+                        <p class="text-xs text-gray-500" th:text="'Max: ' + ${systemMetrics.cpu.frequency_max} + ' MHz'">Max: 3200 MHz</p>
+                    </div>
+                    <div class="text-center p-4 bg-orange-50 rounded-lg">
+                        <i class="fas fa-chart-line text-2xl text-orange-600 mb-2"></i>
+                        <h3 class="font-medium text-gray-900">CPU Usage</h3>
+                        <p class="text-lg font-bold text-gray-900" th:text="${systemMetrics.cpu.usage_percent} + '%'">15%</p>
+                        <p class="text-xs text-gray-500">Average usage</p>
+                    </div>
+                    <div class="text-center p-4 bg-yellow-50 rounded-lg">
+                        <i class="fas fa-tachometer-alt text-2xl text-yellow-600 mb-2"></i>
+                        <h3 class="font-medium text-gray-900">Load Average</h3>
+                        <p class="text-lg font-bold text-gray-900" th:text="${systemMetrics.cpu.load_average_1m}">1.2</p>
+                        <p class="text-xs text-gray-500">1 minute</p>
+                    </div>
+                </div>
+                
+                <!-- CPU Core Usage -->
+                <div class="mt-6" th:if="${systemMetrics.cpu.core_usage}">
+                    <h4 class="text-lg font-medium text-gray-900 mb-2">Per-Core CPU Usage</h4>
+                    <p class="text-xs text-gray-500 mb-4">Estimated usage per CPU core. Values are approximated based on system load average.</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                        <div th:each="usage, iterStat : ${systemMetrics.cpu.core_usage}" class="text-center">
+                            <div class="bg-gray-200 rounded-full h-20 w-20 mx-auto relative">
+                                <div class="progress-bar rounded-full h-20 w-20" 
+                                     th:style="'background: conic-gradient(#10b981 ' + ${usage * 3.6} + 'deg, #e5e7eb 0deg);'"></div>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-xs font-bold" th:text="${usage} + '%'">45%</span>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1" th:text="'Core ' + ${iterStat.index}">Core 0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Metrics -->
+        <div class="bg-white shadow-lg rounded-lg mb-6 metric-card">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-memory text-green-600 mr-2"></i>Memory Information
+                </h2>
+            </div>
+            <div class="p-6" th:if="${systemMetrics.memory}">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Physical Memory -->
+                    <div class="bg-green-50 rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">System Memory (Approximated)</h3>
+                        <p class="text-xs text-gray-500 mb-3">Note: Actual system memory data not available via JMX. Values are approximated based on JVM settings.</p>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Total:</span>
+                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(systemMetrics.memory.total_bytes / 1024 / 1024 / 1024, 1, 2)} + ' GB'">16.00 GB</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Used:</span>
+                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(systemMetrics.memory.used_bytes / 1024 / 1024 / 1024, 1, 2)} + ' GB'">10.50 GB</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Available:</span>
+                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(systemMetrics.memory.available_bytes / 1024 / 1024 / 1024, 1, 2)} + ' GB'">5.50 GB</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
+                                <div class="progress-bar h-3 rounded-full" 
+                                     th:style="'width: ' + ${systemMetrics.memory.usage_percent} + '%'"></div>
+                            </div>
+                            <p class="text-center text-sm font-medium" th:text="${systemMetrics.memory.usage_percent} + '% Used'">65% Used</p>
+                        </div>
+                    </div>
+
+                    <!-- JVM Heap Memory -->
+                    <div class="bg-blue-50 rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">JVM Heap Memory</h3>
+                        <p class="text-xs text-gray-500 mb-3">Memory allocated to the Java Virtual Machine heap space.</p>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Max:</span>
+                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(systemMetrics.memory.jvm_heap_max / 1024 / 1024, 1, 0)} + ' MB'">1024 MB</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Used:</span>
+                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(systemMetrics.memory.jvm_heap_used / 1024 / 1024, 1, 0)} + ' MB'">512 MB</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Free:</span>
+                                <span class="text-sm font-medium" th:text="${#numbers.formatDecimal(systemMetrics.memory.jvm_heap_free / 1024 / 1024, 1, 0)} + ' MB'">512 MB</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3 mt-4">
+                                <div class="bg-blue-500 h-3 rounded-full" 
+                                     th:style="'width: ' + ${systemMetrics.memory.jvm_heap_usage_percent} + '%'"></div>
+                            </div>
+                            <p class="text-center text-sm font-medium" th:text="${systemMetrics.memory.jvm_heap_usage_percent} + '% Used'">50% Used</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Disk Storage -->
+        <div class="bg-white shadow-lg rounded-lg mb-6 metric-card" th:if="${systemMetrics.disk}">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-hdd text-purple-600 mr-2"></i>Storage Information
+                </h2>
+            </div>
+            <div class="p-6">
+                <!-- File Systems -->
+                <div th:if="${systemMetrics.disk.filesystems}" class="space-y-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">File Systems</h3>
+                    <div th:each="fs : ${systemMetrics.disk.filesystems}" class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-gray-900" th:text="${fs.name}">Disk Name</h4>
+                            <span class="text-sm text-gray-500" th:text="${fs.type}">Type</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-600">Mount:</span>
+                                <span class="font-medium block" th:text="${fs.mount}">/</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Total:</span>
+                                <span class="font-medium block" th:text="${#numbers.formatDecimal(fs.total_space / 1024 / 1024 / 1024, 1, 1)} + ' GB'">500 GB</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Used:</span>
+                                <span class="font-medium block" th:text="${#numbers.formatDecimal(fs.used_space / 1024 / 1024 / 1024, 1, 1)} + ' GB'">300 GB</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Available:</span>
+                                <span class="font-medium block" th:text="${#numbers.formatDecimal(fs.usable_space / 1024 / 1024 / 1024, 1, 1)} + ' GB'">200 GB</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                            <div class="bg-purple-500 h-2 rounded-full" 
+                                 th:style="'width: ' + ${fs.usage_percent} + '%'"
+                                 th:class="${fs.usage_percent > 90} ? 'bg-red-500' : (${fs.usage_percent > 80} ? 'bg-yellow-500' : 'bg-purple-500')"></div>
+                        </div>
+                        <p class="text-center text-xs font-medium mt-1" th:text="${fs.usage_percent} + '% Used'">60% Used</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operating System -->
+        <div class="bg-white shadow-lg rounded-lg mb-6 metric-card" th:if="${systemMetrics.os}">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fas fa-desktop text-indigo-600 mr-2"></i>Operating System
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-indigo-50 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">System</h3>
+                        <p class="text-sm text-gray-600" th:text="${systemMetrics.os.family} + ' ' + ${systemMetrics.os.manufacturer}">macOS Apple</p>
+                        <p class="text-sm text-gray-600" th:text="${systemMetrics.os.version}">Version 12.0</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">Processes</h3>
+                        <p class="text-lg font-bold text-gray-900" th:text="${systemMetrics.os.process_count}">245</p>
+                        <p class="text-sm text-gray-600">Active processes</p>
+                    </div>
+                    <div class="bg-yellow-50 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 mb-2">Uptime</h3>
+                        <p class="text-lg font-bold text-gray-900" th:text="${#numbers.formatDecimal(systemMetrics.os.uptime / 86400, 1, 1)} + ' days'">5.2 days</p>
+                        <p class="text-sm text-gray-600">System uptime</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- JVM Metrics -->
+        <div class="bg-white shadow-lg rounded-lg metric-card" th:if="${systemMetrics.jvm}">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">
+                    <i class="fab fa-java text-red-600 mr-2"></i>Java Virtual Machine
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900">JVM Information</h3>
+                        <div class="bg-red-50 rounded-lg p-4 space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Version:</span>
+                                <span class="text-sm font-medium" th:text="${systemMetrics.jvm.version}">17.0.1</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Vendor:</span>
+                                <span class="text-sm font-medium" th:text="${systemMetrics.jvm.vendor}">Oracle Corporation</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Runtime:</span>
+                                <span class="text-sm font-medium" th:text="${systemMetrics.jvm.runtime_name}">OpenJDK Runtime</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">VM Name:</span>
+                                <span class="text-sm font-medium" th:text="${systemMetrics.jvm.vm_name}">OpenJDK 64-Bit Server VM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-medium text-gray-900">JVM Memory Usage</h3>
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <div class="flex flex-col lg:flex-row gap-4">
+                                <div class="flex-1">
+                                    <div class="relative h-48 w-full">
+                                        <canvas id="jvmMemoryChart" class="w-full h-full"></canvas>
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Used:</span>
+                                            <span class="font-medium" th:text="${#numbers.formatDecimal(systemMetrics.jvm.memory_used / 1024 / 1024, 1, 0)} + ' MB'">512 MB</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Max:</span>
+                                            <span class="font-medium" th:text="${#numbers.formatDecimal(systemMetrics.jvm.memory_max / 1024 / 1024, 1, 0)} + ' MB'">1024 MB</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Total:</span>
+                                            <span class="font-medium" th:text="${#numbers.formatDecimal(systemMetrics.jvm.memory_total / 1024 / 1024, 1, 0)} + ' MB'">768 MB</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Free:</span>
+                                            <span class="font-medium" th:text="${#numbers.formatDecimal(systemMetrics.jvm.memory_free / 1024 / 1024, 1, 0)} + ' MB'">256 MB</span>
+                                        </div>
+                                        <div class="flex justify-between font-semibold text-blue-700">
+                                            <span>Usage:</span>
+                                            <span th:text="${systemMetrics.jvm.memory_usage_percent} + '%'">50%</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                                            <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                                                 th:style="'width: ' + ${systemMetrics.jvm.memory_usage_percent} + '%'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Initialize JVM Memory Chart -->
+    <script th:if="${systemMetrics.jvm}">
+        document.addEventListener('DOMContentLoaded', function() {
+            const jvmMemoryCtx = document.getElementById('jvmMemoryChart');
+            if (jvmMemoryCtx) {
+                new Chart(jvmMemoryCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Used Memory', 'Free Memory'],
+                        datasets: [{
+                            data: [
+                                /*[[${systemMetrics.jvm.memory_usage_percent}]]*/ 50,
+                                /*[[${100 - systemMetrics.jvm.memory_usage_percent}]]*/ 50
+                            ],
+                            backgroundColor: ['#3b82f6', '#e5e7eb'],
+                            borderWidth: 0,
+                            hoverBackgroundColor: ['#2563eb', '#d1d5db']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 10,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = Math.round(context.parsed * 100) / 100;
+                                        return label + ': ' + value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

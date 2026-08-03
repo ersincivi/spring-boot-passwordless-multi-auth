@@ -1,0 +1,45 @@
+# Custom Grok Patterns for Passwordless Multi-Auth Application
+
+# Java class patterns
+JAVACLASS (?:[a-zA-Z$_][a-zA-Z$_0-9]*\.)*[a-zA-Z$_][a-zA-Z$_0-9]*
+JAVAFILE (?:[a-zA-Z$_][a-zA-Z$_0-9]*\.)+[a-zA-Z$_][a-zA-Z$_0-9]*\.java
+JAVAMETHOD [a-zA-Z$_][a-zA-Z$_0-9]*
+
+# Security patterns
+SECURITY_EVENT (LOGIN_SUCCESS|LOGIN_FAILURE|LOGOUT|ACCOUNT_LOCKED|PASSWORD_CHANGE|SUSPICIOUS_ACTIVITY|BRUTE_FORCE_ATTEMPT|RATE_LIMIT_EXCEEDED|INVALID_TOKEN|MFA_SUCCESS|MFA_FAILURE)
+IP_ADDRESS_PATTERN (?<![0-9])(?:(?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2})[.](?:25[0-5]|2[0-4][0-9]|[0-1]?[0-9]{1,2}))(?![0-9])
+
+# HTTP patterns
+HTTP_REQUEST_METHOD (GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE)
+HTTP_STATUS_CODE [1-5]\d{2}
+USER_AGENT_PATTERN Mozilla\/[\d\.]+ \(.*?\) .*
+
+# Application specific patterns
+AUDIT_TIMESTAMP \d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}
+THREAD_NAME [a-zA-Z0-9\-_]+
+SPRING_BOOT_LOG %{AUDIT_TIMESTAMP:timestamp}\s+%{LOGLEVEL:level}\s+%{NUMBER:pid}\s+---\s+\[%{THREAD_NAME:thread}\]\s+%{JAVACLASS:class}\s*:\s*%{GREEDYDATA:message}
+
+# Performance patterns
+RESPONSE_TIME_MS \d+ms
+MEMORY_SIZE \d+[KMGT]?B
+DURATION_PATTERN \d+[smhd]
+
+# Database patterns
+SQL_QUERY_TYPE (SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TRUNCATE)
+DATABASE_ERROR (SQLException|DataAccessException|ConstraintViolationException)
+
+# Exception patterns
+JAVA_EXCEPTION [a-zA-Z$_][a-zA-Z$_0-9]*(?:\.[a-zA-Z$_][a-zA-Z$_0-9]*)*Exception
+STACK_TRACE_LINE \s*at\s+%{JAVACLASS:class}\.%{JAVAMETHOD:method}\(%{JAVAFILE:file}:%{NUMBER:line}\)
+
+# JSON patterns for structured logs
+JSON_LOG \{.*\}
+
+# Rate limiting patterns
+RATE_LIMIT_PATTERN rate.limit|too.many.requests|quota.exceeded
+
+# Authentication patterns
+AUTH_TOKEN [a-zA-Z0-9\-_\.]{20,}
+SESSION_ID [a-fA-F0-9\-]{36}
+USER_ID [a-fA-F0-9\-]{36}
+USERNAME [a-zA-Z0-9._@-]+

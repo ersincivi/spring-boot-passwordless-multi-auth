@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<!-- Setting up log path and log file name -->
+	<property name="PATH" value="./logs" />
+	<property name="FILENAME" value="passwordless" />
+
+	<!-- Setting up logging pattern for console logging -->
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<charset>UTF-8</charset>
+			<outputPatternAsHeader>true</outputPatternAsHeader>
+			<pattern>%green(%date{"HH:mm:ss", Europe/Vienna}) %highlight(%-5level) %yellow(%C{1}) : %white(%msg) %red(%n%throwable{short})</pattern>
+			<!-- <pattern>%cyan(%date{"dd-MM-yyyy HH:mm:ss", Europe/Vienna}) %green([%thread]) %highlight(%-5level) %yellow(%C): %white(%msg%n%throwable)</pattern> -->
+		</encoder>
+	</appender>
+
+	<!-- Setting the filename and logging pattern for log file -->
+	<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${PATH}/${FILENAME}.log</file>
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<charset>UTF-8</charset>
+			<outputPatternAsHeader>true</outputPatternAsHeader>
+			<pattern>%date{dd-MM-yyyy HH:mm:ss} %-5level %C: %msg %n</pattern>
+		</encoder>
+	
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${PATH}/archived/${FILENAME}-%d{dd-MM-yyyy}.%i.log</fileNamePattern>
+			<maxFileSize>20MB</maxFileSize>    
+			<maxHistory>100</maxHistory>
+			<totalSizeCap>1GB</totalSizeCap>
+		</rollingPolicy>
+	</appender>
+
+	<!-- Appender for SECURITY_AUDIT logs -->
+	<appender name="SECURITY_AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${PATH}/security_audit.log</file>
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<charset>UTF-8</charset>
+			<outputPatternAsHeader>true</outputPatternAsHeader>
+			<pattern>%date{dd-MM-yyyy HH:mm:ss} %msg%n</pattern> <!-- Log the message only -->
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>${PATH}/archived/security_audit-%d{dd-MM-yyyy}.%i.log</fileNamePattern>
+			<maxFileSize>20MB</maxFileSize>
+			<maxHistory>100</maxHistory>
+			<totalSizeCap>1GB</totalSizeCap>
+		</rollingPolicy>
+	</appender>
+
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="CONSOLE"/>
+        </root>
+        <logger name="io.github.ersincivi.passwordless" additivity="false" level="DEBUG">
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+
+		<logger name="org.hibernate.SQL" level="WARN" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <logger name="org.springframework.web" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+        <logger name="org.springframework.data.redis" level="ERROR" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="io.lettuce.core" level="ERROR" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+
+		<!-- Direct SECURITY_AUDIT logs to its own file and prevent it from going to the root logger's file -->
+        <logger name="SECURITY_AUDIT" level="INFO" additivity="false">
+            <appender-ref ref="SECURITY_AUDIT_FILE"/>
+			<appender-ref ref="CONSOLE"/> <!-- Also log to console in the dev environment -->
+        </logger>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="ERROR">
+            <appender-ref ref="FILE"/>
+        </root>
+        <logger name="io.github.ersincivi.passwordless" additivity="false" level="WARN">
+            <appender-ref ref="FILE"/>
+        </logger>
+		<logger name="org.hibernate" level="ERROR" additivity="false">
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="org.springframework.web" level="WARN" additivity="false">
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="org.springframework.data.redis" level="WARN" additivity="false">
+            <appender-ref ref="FILE"/>
+        </logger>
+        <logger name="io.lettuce.core" level="WARN" additivity="false">
+            <appender-ref ref="FILE"/>
+        </logger>
+
+		<!-- Direct SECURITY_AUDIT logs to its own file in production -->
+		<logger name="SECURITY_AUDIT" level="INFO" additivity="false">
+			<appender-ref ref="SECURITY_AUDIT_FILE"/>
+		</logger>
+    </springProfile>
+	
+</configuration>

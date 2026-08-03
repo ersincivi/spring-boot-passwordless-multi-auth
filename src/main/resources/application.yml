@@ -1,0 +1,542 @@
+# SPRING CONFIGURATION
+spring:
+  application:
+    name: passwordless
+  main:
+    banner-mode: "off" #no banner
+  profiles:
+    active: dev #dev, prod, docker
+  session:
+    timeout: 30m
+    data:
+      redis:
+        namespace: passwordless
+        repository-type: indexed
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 600000
+  thymeleaf:
+    cache: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: http://localhost:8585/login/oauth2/code/google
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: ${GITHUB_CLIENT_ID}
+            client-secret: ${GITHUB_CLIENT_SECRET}
+            redirect-uri: http://localhost:8585/login/oauth2/code/github
+            scope: # Scopes requested from the user
+              - read:user 
+              - user:email
+        provider:
+          google:
+            issuer-uri: https://accounts.google.com
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: id
+# Common server configuration
+server:
+  port: 8585
+  # For this to work correctly behind Nginx, the corresponding settings must be added on the Nginx side.
+  # proxy_set_header X-Forwarded-For $remote_addr;
+  # proxy_set_header X-Forwarded-Proto $scheme;
+  forward-headers-strategy: framework
+#   tomcat:
+#     remoteip:
+#       host-header: x-forwarded-for
+#       protocol-header: x-forwarded-proto
+
+# Common app configuration
+app:
+  base-url: http://localhost:8585
+  jwt:
+    ttl-seconds: 3600            # T2.4: short-lived access token (1 hour)
+    refresh-ttl-seconds: 2592000 # T2.4: rotating refresh token (30 days)
+  mobile:
+    callback-url: passwordless://auth/callback # T4.1: app-scheme redirect target for magic-link login
+  security:
+    hsts-enabled: false          # T5.1: enable in production (HTTPS only)
+    secure-cookies: false        # T5.1: enable in production (HTTPS only)
+    referrer-policy: NO_REFERRER # T5.1: ORIGIN_WHEN_CROSS_ORIGIN in production
+  monitoring:
+    token: ""                    # T5.2: Bearer token for Prometheus scrapes (blank = disabled)
+  magiclink:
+    web:
+      ttl-seconds: 120  # 2 minutes for web
+    api:
+      ttl-seconds: 120  # 2 minutes for mobile API
+  queue:
+    email:
+      key: passwordless:queue:email
+      poll-ms: 1000
+      delayed-key: passwordless:queue:email:delayed
+      delayed-poll-ms: 1000
+      geo-alert-delay-ms: 5000  # 5 seconds delay for GEO_ALERT emails
+  geoip:
+    database: classpath:static/GeoLite2-City.mmdb
+    enabled: true
+
+# Common management/actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,metrics,prometheus"
+      base-path: "/actuator"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        custom:
+          show-components: when_authorized
+          show-details: when_authorized
+        liveness:
+          include: "livenessState"
+        readiness:
+          include: "readinessState,db,redis"
+    info:
+      access: UNRESTRICTED
+    metrics:
+      access: UNRESTRICTED
+    prometheus:
+      access: UNRESTRICTED
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+    git:
+      mode: SIMPLE
+  metrics:
+    distribution:
+      percentiles-histogram:
+        '[http.server.requests]': true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+        step: PT5M
+  server:
+    port: 8585
+
+# Common documentation configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    disabled: true
+---
+# PROFILE: DEVELOPMENT (dev)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/passwordlessdb
+    username: passwordless
+    password: passwordless
+    hikari:
+      # For very high-traffic applications, a value of 50-100 can be tried.
+      maximum-pool-size: 20 #Max 100
+      # Minimum number of idle connections kept in the pool.
+      # Under high traffic, reduces the cost of repeatedly opening/closing connections.
+      minimum-idle: 5 # Max 30
+      # Maximum idle time for a pooled connection (ms).
+      # Takes effect when minimum-idle is set.
+      idle-timeout: 600000 # 10 dakika (600 saniye)
+      # Maximum time a client (the app) waits to obtain a connection (ms).
+      connection-timeout: 5000
+      # Maximum lifetime of a connection in the pool (ms).
+      # Must be SHORTER than idle-timeout and the database timeout setting.
+      # Genellikle 30 dakikadan (1800000 ms) biraz az tutulur.
+      max-lifetime: 1740000 # 29 dakika
+      # Used to detect slow queries or connection leaks (ms).
+      # A connection unused longer than this is logged.
+      leak-detection-threshold: 2000 # 2 saniye
+      # Pool name; helps when tracing logs.
+      pool-name: HikariHighTrafficPool
+  jpa:
+    hibernate:
+      ddl-auto: update #create-drop, update
+    properties:
+      hibernate:
+        '[format_sql]': true
+        '[show_sql]': true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      database: 0
+  mail:
+    host: localhost
+    port: 1025
+    username: ''
+    password: ''
+    test-connection: true
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+          ssl:
+            enable: false
+
+# Development configuration for app
+app:
+  jwt:
+    secret: "d3v3l0pm3nt-s3cr3t-k3y-ch4ng3-m3-pl34s3" # ONLY FOR DEVELOPMENT
+  cors:
+    allowed-origins: "http://localhost:3000,http://localhost:8585"
+    health-origins: "http://localhost:3000,http://localhost:8585"
+  captcha:
+    enabled: false
+    length: 5
+    width: 200
+    height: 80
+    ttl: 300
+    threshold: 3
+  recaptcha:
+    enabled: false
+    secret: ''
+  account-lockout: # User account lockout 
+    max-failed-attempts: 10 # Login page Username/password failed attempts
+    lockout-duration-minutes: 20
+    attempt-window-minutes: 15
+  rate-limit:
+    threshold: 20 # Default threshold for all rate limits
+    login-attempts: # Login page http (GET/POST) requests
+      limit: 20
+      duration: 15
+      unit: MINUTES
+      algorithm: FIXED_WINDOW
+    api-requests: # /api requests
+      limit: 100
+      duration: 1
+      unit: HOURS
+      algorithm: SLIDING_WINDOW
+    otp-verification: # /verfy-otp page requests
+      limit: 20
+      duration: 5
+      unit: MINUTES
+      algorithm: TOKEN_BUCKET
+    totp-verification: # /totp page requests
+      limit: 20
+      duration: 5
+      unit: MINUTES
+      algorithm: TOKEN_BUCKET
+    admin-actions: # Admin actions
+      limit: 50
+      duration: 1
+      unit: HOURS
+      algorithm: LEAKY_BUCKET
+  twilio:
+    enabled: false
+    accountSid: ''
+    authToken: ''
+    fromNumber: ''
+
+# Development configuration for management
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    tags:
+      application: passwordless
+      environment: dev
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    org.springframework.security.oauth2.client: DEBUG
+    org.springframework.security.oauth2.core: DEBUG
+    io.github.ersincivi.passwordless.service.OAuth2UserService: DEBUG
+    io.github.ersincivi.passwordless.service.CustomOidcUserService: DEBUG
+---
+# PROFILE: DOCKER (docker)
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/passwordlessdb
+    username: passwordless
+    password: passwordless
+    hikari:
+      # For very high-traffic applications, a value of 50-100 can be tried.
+      maximum-pool-size: 30 #Max 100
+      # Minimum number of idle connections kept in the pool.
+      # Under high traffic, reduces the cost of repeatedly opening/closing connections.
+      minimum-idle: 10 # Max 30
+      # Maximum idle time for a pooled connection (ms).
+      # Takes effect when minimum-idle is set.
+      idle-timeout: 600000 # 10 dakika (600 saniye)
+      # Maximum time a client (the app) waits to obtain a connection (ms).
+      connection-timeout: 5000
+      # Maximum lifetime of a connection in the pool (ms).
+      # Must be SHORTER than idle-timeout and the database timeout setting.
+      # Genellikle 30 dakikadan (1800000 ms) biraz az tutulur.
+      max-lifetime: 1740000 # 29 dakika
+      # Used to detect slow queries or connection leaks (ms).
+      # A connection unused longer than this is logged.
+      leak-detection-threshold: 2000 # 2 saniye
+      # Pool name; helps when tracing logs.
+      pool-name: HikariHighTrafficPool
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        '[format_sql]': true
+        '[show_sql]': false
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: ${REDIS_PASSWORD}
+      database: 0
+  mail:
+    host: mailpit
+    port: 1025
+    username: ''
+    password: ''
+    test-connection: true
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+          ssl:
+            enable: false
+
+# Docker configuration for app
+app:
+  jwt:
+    secret: "d0ck3r-s3cr3t-k3y-f0r-d3v3l0pm3nt" # Docker-specific dev secret
+  cors:
+    allowed-origins: "http://localhost:3000,http://localhost:8585"
+    health-origins: "http://localhost:3000,http://localhost:8585"
+  captcha:
+    enabled: false
+    length: 5
+    width: 200
+    height: 80
+    ttl: 300
+    threshold: 3
+  recaptcha:
+    enabled: false
+    secret: ''
+  account-lockout: # User account lockout 
+    max-failed-attempts: 10 # Login page Username/password failed attempts
+    lockout-duration-minutes: 20
+    attempt-window-minutes: 15  
+  rate-limit:
+    threshold: 20
+    login-attempts:
+      limit: 15
+      duration: 5
+      unit: MINUTES
+      algorithm: FIXED_WINDOW
+    api-requests:
+      limit: 50
+      duration: 1
+      unit: HOURS
+      algorithm: SLIDING_WINDOW
+    otp-verification: # /verfy-otp page requests
+      limit: 20
+      duration: 5
+      unit: MINUTES
+      algorithm: TOKEN_BUCKET
+    totp-verification:
+      limit: 20
+      duration: 5
+      unit: MINUTES
+      algorithm: TOKEN_BUCKET
+    admin-actions:
+      limit: 20
+      duration: 1
+      unit: HOURS
+      algorithm: LEAKY_BUCKET
+  twilio:
+    enabled: false
+    accountSid: ''
+    authToken: ''
+    fromNumber: ''
+
+# Docker configuration for management
+management:
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  metrics:
+    tags:
+      application: passwordless
+      environment: docker
+---
+# PROFILE: PRODUCTION (prod)
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      # For very high-traffic applications, a value of 50-100 can be tried.
+      maximum-pool-size: 40 #Max 100
+      # Minimum number of idle connections kept in the pool.
+      # Under high traffic, reduces the cost of repeatedly opening/closing connections.
+      minimum-idle: 10 # Max 30
+      # Maximum idle time for a pooled connection (ms).
+      # Takes effect when minimum-idle is set.
+      idle-timeout: 600000 # 10 dakika (600 saniye)
+      # Maximum time a client (the app) waits to obtain a connection (ms).
+      connection-timeout: 5000
+      # Maximum lifetime of a connection in the pool (ms).
+      # Must be SHORTER than idle-timeout and the database timeout setting.
+      # Genellikle 30 dakikadan (1800000 ms) biraz az tutulur.
+      max-lifetime: 1740000 # 29 dakika
+      # Used to detect slow queries or connection leaks (ms).
+      # A connection unused longer than this is logged.
+      leak-detection-threshold: 2000 # 2 saniye
+      # Pool name; helps when tracing logs.
+      pool-name: HikariHighTrafficPool
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        '[format_sql]': false
+        '[show_sql]': false
+        '[use_sql_comments]': false
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      database: 0
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Production server configuration
+server:
+  port: ${PORT:8585}
+  servlet:
+    session:
+      cookie:
+        secure: ${SESSION_COOKIE_SECURE:true} # T5.1: HTTPS-only session cookie in production
+        http-only: true
+        same-site: lax
+
+# Production configuration for app
+app:
+  jwt:
+    secret: ${JWT_SECRET} # T2.1: no default - MUST BE SET AS ENVIRONMENT VARIABLE (min 32 bytes)
+    ttl-seconds: ${JWT_TTL_SECONDS:3600}
+    refresh-ttl-seconds: ${JWT_REFRESH_TTL_SECONDS:2592000}
+  mobile:
+    callback-url: ${APP_MOBILE_CALLBACK_URL:passwordless://auth/callback}
+  security:
+    hsts-enabled: ${SECURITY_HSTS_ENABLED:true}
+    secure-cookies: ${SECURITY_SECURE_COOKIES:true}
+    referrer-policy: ${SECURITY_REFERRER_POLICY:ORIGIN_WHEN_CROSS_ORIGIN}
+  monitoring:
+    token: ${MONITORING_TOKEN:}  # T5.2: Bearer token for Prometheus scrapes (blank = ADMIN-only)
+  queue:
+    email:
+      key: ${QUEUE_EMAIL_KEY:passwordless:queue:email}
+      poll-ms: ${QUEUE_EMAIL_POLL_MS:1000}
+      delayed-key: ${QUEUE_EMAIL_DELAYED_KEY:passwordless:queue:email:delayed}
+      delayed-poll-ms: ${QUEUE_EMAIL_DELAYED_POLL_MS:1000}
+      geo-alert-delay-ms: ${QUEUE_EMAIL_GEO_ALERT_DELAY_MS:10000}  # 10 seconds delay for GEO_ALERT emails
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://yourdomain.com}
+  captcha:
+    enabled: false
+    length: 5
+    width: 200
+    height: 80
+    ttl: 300
+    threshold: 3
+  recaptcha:
+    enabled: ${RECAPTCHA_ENABLED:true}
+    secret: ${RECAPTCHA_SECRET}
+  account-lockout:
+    max-failed-attempts: ${ACCOUNT_LOCKOUT_MAX_ATTEMPTS:10}
+    lockout-duration-minutes: ${ACCOUNT_LOCKOUT_DURATION:20}
+    attempt-window-minutes: ${ACCOUNT_LOCKOUT_WINDOW:15}
+  rate-limit:
+    threshold: ${RATE_LIMIT_THRESHOLD:20}
+    login-attempts:
+      limit: ${RATE_LIMIT_LOGIN_LIMIT:15}
+      duration: ${RATE_LIMIT_LOGIN_DURATION:10}
+      unit: ${RATE_LIMIT_LOGIN_UNIT:MINUTES}
+      algorithm: ${RATE_LIMIT_LOGIN_ALGORITHM:FIXED_WINDOW}
+    api-requests:
+      limit: ${RATE_LIMIT_API_LIMIT:100}
+      duration: ${RATE_LIMIT_API_DURATION:1}
+      unit: ${RATE_LIMIT_API_UNIT:HOURS}
+      algorithm: ${RATE_LIMIT_API_ALGORITHM:SLIDING_WINDOW}
+    otp-verification:
+      limit: ${RATE_LIMIT_OTP_LIMIT:20}
+      duration: ${RATE_LIMIT_OTP_DURATION:10}
+      unit: ${RATE_LIMIT_OTP_UNIT:MINUTES}
+      algorithm: ${RATE_LIMIT_OTP_ALGORITHM:TOKEN_BUCKET}
+    totp-verification:
+      limit: ${RATE_LIMIT_TOTP_LIMIT:20}
+      duration: ${RATE_LIMIT_TOTP_DURATION:10}
+      unit: ${RATE_LIMIT_TOTP_UNIT:MINUTES}
+      algorithm: ${RATE_LIMIT_TOTP_ALGORITHM:TOKEN_BUCKET}
+    admin-actions:
+      limit: ${RATE_LIMIT_ADMIN_LIMIT:50}
+      duration: ${RATE_LIMIT_ADMIN_DURATION:1}
+      unit: ${RATE_LIMIT_ADMIN_UNIT:HOURS}
+      algorithm: ${RATE_LIMIT_ADMIN_ALGORITHM:LEAKY_BUCKET}
+  twilio:
+    enabled: ${TWILIO_ENABLED:false}
+    accountSid: ${TWILIO_ACCOUNT_SID}
+    authToken: ${TWILIO_AUTH_TOKEN}
+    fromNumber: ${TWILIO_FROM_NUMBER}
+  geoip:
+    database: ${GEOIP_DATABASE_PATH:classpath:static/GeoLite2-City.mmdb}
+    enabled: ${GEOIP_ENABLED:true}
+
+# Production configuration for management
+management:
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+  metrics:
+    tags:
+      application: passwordless
+      environment: prod

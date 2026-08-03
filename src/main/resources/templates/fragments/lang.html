@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="lang">
+  <div class="language-selector">
+    <div class="language-dropdown-container">
+      <button type="button" class="language-current" id="language-toggle" aria-haspopup="true" aria-expanded="false">
+        <span class="current-flag" th:class="'flag-icon flag-' + ${#locale}">
+          <span th:if="${#locale.toString()} == 'en'">🇺🇸</span>
+          <span th:if="${#locale.toString()} == 'tr'">🇹🇷</span>
+          <span th:if="${#locale.toString()} == 'de'">🇩🇪</span>
+        </span>
+        <span class="current-lang" th:text="${#locale.toString().toUpperCase()}">EN</span>
+        <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      
+      <div class="language-dropdown" id="language-dropdown">
+        <a th:href="@{?lang=en}" class="language-option" th:classappend="${#locale.toString() == 'en'} ? 'active' : ''">
+          <span class="flag-icon">🇺🇸</span>
+          <span>English</span>
+        </a>
+        <a th:href="@{?lang=tr}" class="language-option" th:classappend="${#locale.toString() == 'tr'} ? 'active' : ''">
+          <span class="flag-icon">🇹🇷</span>
+          <span>Türkçe</span>
+        </a>
+        <a th:href="@{?lang=de}" class="language-option" th:classappend="${#locale.toString() == 'de'} ? 'active' : ''">
+          <span class="flag-icon">🇩🇪</span>
+          <span>Deutsch</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+
+

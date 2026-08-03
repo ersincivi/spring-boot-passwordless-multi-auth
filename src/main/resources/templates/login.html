@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- CSRF tokens (only if CSRF is enabled) -->
+	<meta name="_csrf" th:if="${_csrf}" th:content="${_csrf.token}"/>
+	<meta name="_csrf_header" th:if="${_csrf}" th:content="${_csrf.headerName}"/>
+	
+	<!-- Basic Security Headers (X-Frame-Options and CSP are set via HTTP headers) -->
+	<meta http-equiv="X-Content-Type-Options" content="nosniff">
+	<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+	<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+	<meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+	
+	<title th:text="#{login.title}">Login - Passwordless Multi-Auth</title>
+	
+	<style>
+		/* Reset and base styles */
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+			min-height: 100vh;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 20px;
+		}
+
+		.login-container {
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 20px;
+			box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+			padding: 30px;
+			width: 100%;
+			max-width: 450px;
+			text-align: center;
+			border: 1px solid rgba(255, 255, 255, 0.2);
+		}
+
+		.login-logo {
+			margin-bottom: 30px;
+		}
+
+		.login-logo .logo {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 10px;
+		}
+
+		.logo img {
+			width: 100px;
+			height: auto;
+		}
+
+		.login-logo .logo .logo-text {
+			text-decoration: none;
+			font-size: 2.5rem;
+			color: #333;
+		}
+
+		.login-title {
+			font-size: 1.8rem;
+			font-weight: 600;
+			color: #333;
+			margin-bottom: 8px;
+		}
+
+		.login-subtitle {
+			color: #666;
+			font-size: 1.1rem;
+			margin-bottom: 20px;
+		}
+
+		/* Language Selector Styles */
+		.language-selector {
+			position: absolute;
+			top: 20px;
+			right: 20px;
+			z-index: 10;
+		}
+
+		.language-dropdown-container {
+			position: relative;
+			display: inline-block;
+		}
+
+		.language-current {
+			background: rgba(255, 255, 255, 0.9);
+			border: 2px solid rgba(102, 126, 234, 0.3);
+			border-radius: 12px;
+			padding: 10px 15px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			font-size: 0.9rem;
+			font-weight: 500;
+			color: #333;
+			backdrop-filter: blur(5px);
+		}
+
+		.language-current:hover {
+			border-color: #667eea;
+			box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+			transform: translateY(-2px);
+		}
+
+		.current-flag {
+			font-size: 1.2rem;
+		}
+
+		.current-lang {
+			font-weight: 600;
+			color: #333;
+		}
+
+		.dropdown-arrow {
+			width: 16px;
+			height: 16px;
+			transition: transform 0.3s ease;
+		}
+
+		.language-current[aria-expanded="true"] .dropdown-arrow {
+			transform: rotate(180deg);
+		}
+
+		.language-dropdown {
+			position: absolute;
+			top: 100%;
+			right: 0;
+			margin-top: 8px;
+			background: rgba(255, 255, 255, 0.95);
+			backdrop-filter: blur(10px);
+			border-radius: 12px;
+			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+			border: 1px solid rgba(255, 255, 255, 0.3);
+			min-width: 160px;
+			max-height: 0;
+			overflow: hidden;
+			transition: all 0.3s ease;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-10px);
+		}
+
+		.language-dropdown.show {
+			max-height: 200px;
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+
+		.language-option {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 12px 16px;
+			text-decoration: none;
+			color: #333;
+			transition: all 0.2s ease;
+			font-size: 0.9rem;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+		}
+
+		.language-option:last-child {
+			border-bottom: none;
+		}
+
+		.language-option:hover {
+			background: rgba(102, 126, 234, 0.1);
+			color: #667eea;
+		}
+
+		.language-option.active {
+			background: rgba(102, 126, 234, 0.15);
+			color: #667eea;
+			font-weight: 600;
+		}
+
+		.flag-icon {
+			font-size: 1.2rem;
+		}
+
+		/* Form Styles */
+		.form-group {
+			margin-bottom: 20px;
+			text-align: left;
+		}
+
+		label {
+			display: block;
+			margin-bottom: 8px;
+			color: #333;
+			font-weight: 500;
+			font-size: 0.95rem;
+		}
+
+		.form-input {
+			width: 100%;
+			padding: 15px 20px;
+			border: 2px solid #e1e1e1;
+			border-radius: 12px;
+			font-size: 16px;
+			transition: all 0.3s ease;
+			background: rgba(255, 255, 255, 0.9);
+		}
+
+		.form-input:focus {
+			outline: none;
+			border-color: #667eea;
+			box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+			transform: translateY(-2px);
+		}
+
+		.form-input.valid {
+			border-color: #28a745;
+		}
+
+		.form-input.invalid {
+			border-color: #dc3545;
+		}
+
+		.form-input.th-valid {
+			border-color: #28a745;
+		}
+
+		.form-input.th-error {
+			border-color: #dc3545;
+		}
+
+		.error {
+			font-size: 0.85rem;
+			color: #dc3545;
+			display: block;
+			margin-top: 5px;
+		}
+
+		.password-input-wrapper {
+			position: relative;
+		}
+
+		.password-toggle {
+			position: absolute;
+			right: 15px;
+			top: 50%;
+			transform: translateY(-50%);
+			background: none;
+			border: none;
+			cursor: pointer;
+			color: #666;
+			font-size: 1.2rem;
+			padding: 5px;
+			border-radius: 4px;
+			transition: color 0.3s ease;
+		}
+
+		.password-toggle:hover {
+			color: #667eea;
+		}
+
+		.eye-icon {
+			width: 20px;
+			height: 20px;
+		}
+
+		/* Alert Styles */
+		.alert {
+			padding: 15px;
+			border-radius: 8px;
+			margin-bottom: 20px;
+			font-weight: 500;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		.alert-error {
+			background: rgba(248, 215, 218, 0.9);
+			color: #721c24;
+			border: 1px solid #f5c6cb;
+		}
+
+		.alert-warning {
+			background: rgba(255, 243, 205, 0.9);
+			color: #856404;
+			border: 1px solid #ffeaa7;
+		}
+
+		.alert-info {
+			background: rgba(209, 236, 241, 0.9);
+			color: #0c5460;
+			border: 1px solid #b6d4da;
+		}
+
+		.alert-success {
+			background: rgba(212, 237, 218, 0.9);
+			color: #155724;
+			border: 1px solid #c3e6cb;
+		}
+
+		.alert-icon {
+			font-size: 1.2rem;
+		}
+
+		.security-notice {
+			font-size: 0.85rem;
+			color: #666;
+			display: block;
+			margin-top: 5px;
+		}
+
+		/* OTP Input Styling */
+		/* #otp-input {
+			text-align: center;
+			letter-spacing: 0.2em;
+			font-size: 1.5rem;
+			font-weight: 600;
+			padding: 20px;
+		} */
+
+		#otp-input.valid {
+			border-color: #16a34a;
+			background: rgba(34, 197, 94, 0.05);
+		}
+
+		#otp-input.invalid {
+			border-color: #dc2626;
+			background: rgba(239, 68, 68, 0.05);
+		}
+
+		/* Form Options */
+		.form-options {
+			display: flex;
+			justify-content: space-between;
+			align-items: flex-start;
+			margin-bottom: 25px;
+			gap: 15px;
+		}
+
+		.remember-me-container {
+			flex: 1;
+		}
+
+		.checkbox-container {
+			display: flex;
+			align-items: flex-start;
+			gap: 5px;
+			cursor: pointer;
+			font-size: 0.9rem;
+		}
+
+		.checkbox-container input[type="checkbox"] {
+			width: 18px;
+			height: 18px;
+			accent-color: #667eea;
+		}
+
+		.forgot-link {
+			color: #667eea;
+			text-decoration: none;
+			font-size: 0.9rem;
+			transition: color 0.3s ease;
+			white-space: nowrap;
+		}
+
+		.forgot-link:hover {
+			color: #764ba2;
+			text-decoration: underline;
+		}
+
+		/* Button Styles */
+		.login-btn {
+			width: 100%;
+			padding: 15px;
+			background:#4A44D6;
+			color: white;
+			border: none;
+			border-radius: 12px;
+			font-size: 16px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.login-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+		}
+
+		.login-btn:active {
+			transform: translateY(0);
+		}
+
+		.login-btn:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+			transform: none;
+		}
+
+		.btn-loader {
+			display: none;
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			transform: translate(-50%, -50%);
+		}
+
+		.spinner {
+			width: 20px;
+			height: 20px;
+			border: 2px solid transparent;
+			border-top: 2px solid white;
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+		}
+
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+
+		/* Divider */
+		.divider {
+			position: relative;
+			text-align: center;
+			margin: 20px 0;
+			color: #666;
+			font-size: 0.9rem;
+		}
+
+		.divider::before {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 0;
+			right: 0;
+			height: 1px;
+			background: #e1e1e1;
+			z-index: 1;
+		}
+
+		.divider span {
+			background: rgba(255, 255, 255, 0.95);
+			padding: 0 15px;
+			position: relative;
+			z-index: 2;
+		}
+
+		/* Social Login Buttons Container */
+		.social-logins {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			margin-bottom: 20px;
+		}
+
+		.social-btn {
+			width: 100%;
+			padding: 12px 20px;
+			border: 2px solid #e1e1e1;
+			border-radius: 12px;
+			background: white;
+			color: #333;
+			text-decoration: none;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 12px;
+			font-weight: 500;
+			transition: all 0.3s ease;
+			font-size: 0.95rem;
+			cursor: pointer;
+		}
+
+		.social-btn:hover {
+			border-color: #667eea;
+			box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+			transform: translateY(-2px);
+		}
+
+		.social-icon {
+			width: 20px;
+			height: 20px;
+			flex-shrink: 0;
+		}
+
+		/* Individual social button styles */
+		.google-btn:hover {
+			border-color: #4285F4;
+			background: rgba(66, 133, 244, 0.05);
+		}
+
+		.email-btn:hover {
+			border-color: #667eea;
+			background: rgba(102, 126, 234, 0.05);
+		}
+
+		.github-btn:hover {
+			border-color: #24292e;
+			background: rgba(36, 41, 46, 0.05);
+		}
+
+		/* Register Link */
+		.register-link {
+			text-align: center;
+			color: #666;
+		}
+
+		.register-link a {
+			color: #667eea;
+			text-decoration: none;
+			font-weight: 500;
+			margin-left: 5px;
+			transition: color 0.3s ease;
+		}
+
+		.register-link a:hover {
+			color: #764ba2;
+			text-decoration: underline;
+		}
+
+		/* Email OTP Modal Styles */
+		.modal-overlay {
+			display: none;
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0, 0, 0, 0.5);
+			z-index: 1000;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.modal-overlay.show {
+			display: flex;
+		}
+
+		.modal-content {
+			background: white;
+			padding: 30px;
+			border-radius: 20px;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+			max-width: 400px;
+			width: 90%;
+			position: relative;
+			animation: slideIn 0.3s ease;
+		}
+
+		@keyframes slideIn {
+			from {
+				opacity: 0;
+				transform: translateY(-20px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		.modal-close {
+			position: absolute;
+			top: 15px;
+			right: 15px;
+			background: none;
+			border: none;
+			font-size: 1.5rem;
+			cursor: pointer;
+			color: #666;
+			transition: color 0.3s ease;
+		}
+
+		.modal-close:hover {
+			color: #333;
+		}
+
+		.modal-title {
+			font-size: 1.5rem;
+			font-weight: 600;
+			color: #333;
+			margin-bottom: 10px;
+			text-align: center;
+		}
+
+		.modal-subtitle {
+			color: #666;
+			font-size: 0.9rem;
+			margin-bottom: 20px;
+			text-align: center;
+		}
+		
+		/* Modal Error Styles */
+		#modal-error {
+			margin-top: 15px;
+			margin-bottom: 15px;
+			padding: 12px 15px;
+			border-radius: 8px;
+			font-size: 0.9rem;
+			animation: slideDown 0.3s ease;
+		}
+		
+		@keyframes slideDown {
+			from {
+				opacity: 0;
+				transform: translateY(-10px);
+			}
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		/* Security Footer */
+		.security-footer {
+			position: fixed;
+			bottom: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			text-align: center;
+			color: rgba(255, 255, 255, 0.8);
+			font-size: 0.8rem;
+			max-width: 600px;
+			padding: 0 20px;
+		}
+
+		/* Mobile responsiveness */
+		@media (max-width: 480px) {
+			.login-container {
+				padding: 30px 20px;
+				max-width: none;
+			}
+
+			.login-logo .logo {
+				font-size: 2rem;
+			}
+
+			.login-title {
+				font-size: 1.5rem;
+			}
+
+			.login-subtitle {
+                font-size: 1rem;
+            }
+
+			.form-options {
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 10px;
+			}
+
+			.language-selector {
+				position: absolute;
+				top: 20px;
+				right: 20px;
+			}
+		}
+
+		/* Focus improvements for accessibility */
+		input:focus-visible,
+		button:focus-visible,
+		a:focus-visible {
+			outline: 3px solid #667eea;
+			outline-offset: 2px;
+		}
+
+		/* Visually hidden utility */
+		.visually-hidden {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			padding: 0;
+			margin: -1px;
+			overflow: hidden;
+			clip: rect(0, 0, 0, 0);
+			white-space: nowrap;
+			border: 0;
+		}
+		
+		/* CAPTCHA Styles */
+		.captcha-container {
+			margin-bottom: 20px;
+			text-align: center;
+		}
+		
+		.captcha-image {
+			border: 2px solid #e1e1e1;
+			border-radius: 8px;
+			margin: 10px 0;
+			max-width: 100%;
+			height: auto;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		}
+		
+		.captcha-refresh {
+			background: #f8f9fa;
+			border: 1px solid #e1e1e1;
+			border-radius: 6px;
+			padding: 5px 10px;
+			font-size: 0.8rem;
+			color: #666;
+			cursor: pointer;
+			margin-left: 10px;
+			transition: all 0.3s ease;
+		}
+		
+		.captcha-refresh:hover {
+			background: #e9ecef;
+			border-color: #667eea;
+			color: #667eea;
+		}
+
+		/* Last Account Styles */
+		#lastAccountSection {
+			display: none;
+			margin-bottom: 20px;
+		}
+
+		.last-account-card {
+			background: linear-gradient(135deg, #667eea 0%, #d4006a 100%);
+			border-radius: 15px;
+			padding: 25px;
+			color: white;
+			text-align: center;
+			margin-bottom: 15px;
+			box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+			transition: transform 0.3s ease, box-shadow 0.3s ease;
+		}
+
+		.last-account-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+		}
+
+		.last-account-avatar {
+			width: 80px;
+			height: 80px;
+			border-radius: 50%;
+			margin: 0 auto 15px;
+			border: 4px solid rgba(255, 255, 255, 0.3);
+			background: rgba(255, 255, 255, 0.2);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2.5rem;
+			backdrop-filter: blur(10px);
+			overflow: hidden;
+		}
+
+		.last-account-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
+
+		.last-account-name {
+			font-size: 1.3rem;
+			font-weight: 600;
+			margin-bottom: 5px;
+			color: white;
+		}
+
+		.last-account-email {
+			font-size: 0.9rem;
+			color: rgba(255, 255, 255, 0.85);
+			margin-bottom: 8px;
+		}
+
+		.last-account-method {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 0.85rem;
+			background: rgba(255, 255, 255, 0.2);
+			padding: 5px 12px;
+			border-radius: 20px;
+			color: white;
+			backdrop-filter: blur(5px);
+		}
+
+		.continue-last-account-btn {
+			background: white;
+			color: #667eea;
+			border: none;
+			padding: 12px 30px;
+			border-radius: 10px;
+			font-size: 1rem;
+			font-weight: 600;
+			cursor: pointer;
+			margin-top: 15px;
+			transition: all 0.3s ease;
+			width: 100%;
+		}
+
+		.continue-last-account-btn:hover {
+			background: rgba(255, 255, 255, 0.95);
+			transform: scale(1.02);
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+		}
+
+		.use-different-method {
+			background: none;
+			border: none;
+			color: #667eea;
+			text-decoration: underline;
+			cursor: pointer;
+			font-size: 0.9rem;
+			padding: 10px;
+			width: 100%;
+			transition: color 0.3s ease;
+		}
+
+		.use-different-method:hover {
+			color: #764ba2;
+		}
+
+		#regularLoginSection {
+			display: block;
+		}
+	</style>
+</head>
+<body>
+	<div th:replace="~{fragments/lang :: lang}"></div>
+	
+	<div class="login-container">
+		<div class="login-logo">
+			<div class="logo">
+				<a href="/">
+					<img src="/images/logo/logo.webp" alt="Logo">
+				</a>
+			</div>
+			<h1 class="login-title" th:text="#{login.title}">Welcome Back</h1>
+			<!-- <p class="login-subtitle" th:text="#{login.subtitle}">Sign in to your account</p> -->
+		</div>
+
+		<!-- Error Messages with Security Context -->
+		<div th:if="${param.error}" class="alert alert-error" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">⚠</span>
+			<span th:if="${param.message}" th:text="${param.message[0]}">Custom error message</span>
+			<span th:unless="${param.message}">Invalid username or password</span>
+		</div>
+		
+		<!-- Account Lockout Warning -->
+		<div th:if="${param.locked}" class="alert alert-warning" role="alert" aria-live="assertive">
+			<span class="alert-icon" aria-hidden="true">🔒</span>
+			<span th:text="#{login.account.locked}">Account temporarily locked due to multiple failed attempts</span>
+		</div>
+		
+		<!-- Session Expired Warning -->
+		<div th:if="${param.expired}" class="alert alert-info" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">⏰</span>
+			<span th:text="#{login.session.expired}">Your session has expired for security reasons</span>
+		</div>
+
+		<!-- Logout Success Messages -->
+		<div th:if="${param.logout}" class="alert alert-success" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">✓</span>
+			<span th:text="#{login.logout.success}">You have been logged out successfully</span>
+		</div>
+		
+		<!-- Rate Limiting Warning -->
+		<div th:if="${param.ratelimit}" class="alert alert-warning" role="alert" aria-live="assertive">
+			<span class="alert-icon" aria-hidden="true">⏱</span>
+			<span th:text="#{login.rate.limit}">Too many login attempts. Please wait before trying again.</span>
+		</div>
+
+		<!-- Password Reset Messages -->
+		<div th:if="${param.email_not_confirmed}" class="alert alert-success" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">✓</span>
+			<span th:text="#{login.email.not.confirmed}">If this email exists, a reset link has been sent.</span>
+		</div>
+
+		<!-- Password Reset Success Messages -->
+		<div th:if="${param.email_sent}" class="alert alert-success" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">✓</span>
+			<span th:text="#{login.email.sent}">Password reset email sent successfully. Please check your email.</span>
+		</div>
+
+		<!-- Password Reset Ok Messages -->
+		<div th:if="${param.reset_success}" class="alert alert-success" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">✓</span>
+			<span th:text="#{login.reset.success}">Your password has been reset successfully.</span>
+		</div>
+
+		<!-- Account Verified Messages -->
+		<div th:if="${param.verified}" class="alert alert-success" role="alert" aria-live="polite">
+			<span class="alert-icon" aria-hidden="true">✓</span>
+			<span th:text="#{login.verified}">Your account has been verified successfully.</span>
+		</div>
+		
+		<!-- CAPTCHA Required Warning -->
+		<!-- <div th:if="${param.captcha} or ${captchaRequired}" class="alert alert-warning" role="alert" aria-live="assertive">
+			<span class="alert-icon" aria-hidden="true">🛡️</span>
+			<span th:text="#{login.captcha.required}">Security verification required due to multiple failed attempts</span>
+		</div> -->
+
+		<!-- Last Account Section (Smart Login) -->
+		<div id="lastAccountSection">
+			<div class="last-account-card">
+				<div class="last-account-avatar" id="lastAccountAvatar">
+					<!-- Avatar will be populated by JavaScript -->
+				</div>
+				<div class="last-account-name" id="lastAccountName"><!-- Name --></div>
+				<div class="last-account-email" id="lastAccountEmail"><!-- Email --></div>
+				<div class="last-account-method" id="lastAccountMethod">
+					<!-- Method icon and text -->
+				</div>
+				<button type="button" class="continue-last-account-btn" id="continueLastAccountBtn">
+					<span th:text="#{login.last.account.continue}">Continue with this account</span>
+				</button>
+			</div>
+			<button type="button" class="use-different-method" id="useDifferentMethodBtn">
+				<span th:text="#{login.last.account.different}">Use a different login method</span>
+			</button>
+			<button type="button" class="remove-account-btn" id="removeAccountBtn" style="margin-top: 10px; color: #dc3545; border: 1px solid #dc3545; background: transparent;">
+				<span th:text="#{login.last.account.remove}">Remove account</span>
+			</button>
+		</div>
+
+		<!-- Regular Login Section -->
+		<div id="regularLoginSection">
+		<!-- MagicLink Login Form (Primary Method) -->
+		<div id="emailLoginSection">
+			<!-- Step 1: Enter Email for MagicLink -->
+			<form id="emailMagicLinkForm" style="display: block;">
+				<div class="form-group">
+					<label for="email-input" th:text="#{login.email.label}">Email Address</label>
+					<input 
+						type="email" 
+						id="email-input" 
+						name="email" 
+						class="form-input" 
+						th:placeholder="#{login.email.placeholder}"
+						autocomplete="email"
+						required 
+						autofocus />
+				</div>
+				<button type="submit" class="login-btn" id="sendMagicLinkBtn">
+					<span class="btn-text" th:text="#{login.continue}">Continue</span>
+					<div class="btn-loader" style="display: none;">
+						<div class="spinner" aria-label="Loading..."></div>
+					</div>
+				</button>
+				<small class="security-notice" id="magicLinkHelp" style="display: none; margin-top: 10px; text-align: center;" th:text="#{login.magiclink.check.email}">Check your email for the login link (expires in 2 minutes)</small>
+			</form>
+		</div>
+		<!-- Divider -->
+		<div class="divider">
+			<span th:text="#{login.divider}">or</span>
+		</div>
+		
+		<!-- Social Login Buttons -->
+		<div class="social-logins">
+			<!-- Google OAuth Button with Security -->
+			<a href="/oauth2/authorization/google" 
+			   class="social-btn google-btn"
+			   rel="nofollow noopener"
+			   data-oauth-provider="google"
+			   th:aria-label="#{login.google.aria.label}"
+			   th:title="#{login.google.title}">
+				<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+					<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+					<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+					<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+					<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+				</svg>
+				<span th:text="#{login.google}">Continue with Google</span>
+			</a>
+
+			<!-- GitHub OAuth Button -->
+			<a href="/oauth2/authorization/github" 
+			   class="social-btn github-btn"
+			   rel="nofollow noopener"
+			   data-oauth-provider="github"
+			   th:aria-label="#{login.github.aria.label}"
+			   th:title="#{login.github.title}">
+				<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true">
+					<path fill="#24292e" d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+				</svg>
+				<span th:text="#{login.github}">Continue with GitHub</span>
+			</a>
+		</div>
+		</div>
+		<!-- End Regular Login Section -->
+		
+		<!-- Register Link with Security -->
+		<div class="register-link">
+			<span th:text="#{login.no.account}">Don't have an account?</span>
+			<a href="/register" 
+			   th:text="#{nav.register}"
+			   rel="nofollow"
+			   aria-label="Create new account">Sign up</a>
+		</div>
+		</div>
+	</div>
+
+	<!-- Secure Script Loading -->
+	<script src="/js/last-login-service.js" th:nonce="${nonce}"></script>
+	<script src="/js/login.js" th:nonce="${nonce}" defer></script>
+	        
+	<!-- Security Monitoring with CSP Nonce -->
+	<script th:nonce="${nonce}">
+		
+		// Security event logging
+		window.addEventListener('error', function(e) {
+			console.warn('Security: Script error detected', e.filename);
+		});
+		
+		// Prevent basic XSS attempts
+		if (window.location.hash.includes('script') || window.location.search.includes('<')) {
+			window.location.href = '/login';
+		}
+	</script>
+</body>
+</html>

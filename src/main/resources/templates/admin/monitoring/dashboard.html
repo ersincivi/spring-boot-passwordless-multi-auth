@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">System Monitoring Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.2s ease-in-out; }
+        .pulse-green { animation: pulse 2s infinite; --tw-pulse-color: #10b981; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .status-up { color: #10b981; }
+        .status-down { color: #ef4444; }
+        .status-warn { color: #f59e0b; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+
+    <!-- Navigation -->
+    <nav class="gradient-bg shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-white text-xl font-bold">
+                        <i class="fas fa-tachometer-alt mr-2"></i>
+                        System Monitoring Dashboard
+                    </h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-white text-sm" th:text="'Last Updated: ' + ${timestamp}">Last Updated: Now</span>
+                    <div class="flex items-center text-white">
+                        <div class="w-3 h-3 rounded-full pulse-green mr-2" 
+                             th:class="${healthStatus.status == 'UP'} ? 'bg-green-500 pulse-green' : 'bg-red-500'"></div>
+                        <span th:text="${healthStatus.status}">UP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        
+        <!-- Quick Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- CPU Usage -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-microchip text-2xl text-blue-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">CPU Cores</dt>
+                                <dd class="text-lg font-medium text-gray-900" th:text="${quickMetrics.cpuCores} + ' cores'">8 cores</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Memory Usage -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-memory text-2xl text-green-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Memory Usage</dt>
+                                <dd class="text-lg font-medium text-gray-900" th:text="${quickMetrics.jvmMemoryUsage} + '%'">65%</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Users -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-users text-2xl text-purple-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">Active Users</dt>
+                                <dd class="text-lg font-medium text-gray-900" th:text="${quickMetrics.activeUsers}">42</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database Connections -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover">
+                <div class="p-5">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-database text-2xl text-orange-600"></i>
+                        </div>
+                        <div class="ml-5 w-0 flex-1">
+                            <dl>
+                                <dt class="text-sm font-medium text-gray-500 truncate">DB Connections</dt>
+                                <dd class="text-lg font-medium text-gray-900" th:text="${quickMetrics.databaseConnections}">8</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <!-- System Metrics -->
+            <a href="/admin/monitoring/system" class="block">
+                <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">System Metrics</h3>
+                                <p class="text-sm text-gray-500 mt-1">Hardware & OS monitoring</p>
+                            </div>
+                            <i class="fas fa-server text-3xl text-blue-500"></i>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <i class="fas fa-chart-line mr-2"></i>
+                                CPU, Memory, Disk, Network
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Application Metrics -->
+            <a href="/admin/monitoring/application" class="block">
+                <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">Application Metrics</h3>
+                                <p class="text-sm text-gray-500 mt-1">JVM & performance data</p>
+                            </div>
+                            <i class="fas fa-code text-3xl text-green-500"></i>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <i class="fas fa-tachometer-alt mr-2"></i>
+                                Response times, throughput, errors
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Health Monitoring -->
+            <a href="/admin/monitoring/health" class="block">
+                <div class="bg-white overflow-hidden shadow-lg rounded-lg card-hover cursor-pointer">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">Health Monitoring</h3>
+                                <p class="text-sm text-gray-500 mt-1">Component status checks</p>
+                            </div>
+                            <i class="fas fa-heartbeat text-3xl text-red-500"></i>
+                        </div>
+                        <div class="mt-4">
+                            <div class="flex items-center text-sm text-gray-600">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Database, Redis, Services
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Real-time Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- CPU Usage Chart -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">CPU Usage</h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="cpuChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Memory Usage Chart -->
+            <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Memory Usage</h3>
+                </div>
+                <div class="p-6">
+                    <canvas id="memoryChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="bg-white overflow-hidden shadow-lg rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">System Status Overview</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <i class="fas fa-database text-2xl mb-2 status-up"></i>
+                        <h4 class="font-medium">Database</h4>
+                        <p class="text-sm text-gray-600 status-up">Connected</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <i class="fas fa-memory text-2xl mb-2 status-up"></i>
+                        <h4 class="font-medium">Redis Cache</h4>
+                        <p class="text-sm text-gray-600 status-up">Connected</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <i class="fas fa-shield-alt text-2xl mb-2 status-up"></i>
+                        <h4 class="font-medium">Security</h4>
+                        <p class="text-sm text-gray-600 status-up">Active</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for real-time updates -->
+    <script>
+        // Initialize charts
+        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+
+        const cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: ['1m', '2m', '3m', '4m', '5m'],
+                datasets: [{
+                    label: 'CPU Usage %',
+                    data: [45, 52, 48, 61, 55],
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+
+        const memoryChart = new Chart(memoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Used', 'Free'],
+                datasets: [{
+                    data: [/*[[${quickMetrics.jvmMemoryUsage}]]*/ 65, /*[[${100 - quickMetrics.jvmMemoryUsage}]]*/ 35],
+                    backgroundColor: ['#10b981', '#f3f4f6']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            fetch('/admin/monitoring/api/realtime')
+                .then(response => response.json())
+                .then(data => {
+                    // Update charts with real-time data
+                    // This would update the charts with new data
+                })
+                .catch(error => console.log('Error fetching real-time data:', error));
+        }, 30000);
+    </script>
+
+</body>
+</html>

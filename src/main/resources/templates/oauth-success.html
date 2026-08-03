@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" />
+    
+    <title>Login Success</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .success-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+        }
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: scaleIn 0.5s ease;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0); }
+            to { transform: scale(1); }
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✓</div>
+        <h1>Login Successful!</h1>
+        <p>Redirecting to homepage...</p>
+        <div class="spinner"></div>
+    </div>
+
+    <script src="/js/last-login-service.js"></script>
+    <script sec:authorize="isAuthenticated()">
+        // Save OAuth login info to localStorage
+        if (window.LastLoginService) {
+            const userEmail = /*[[${#authentication.principal.email}]]*/ '';
+            const userName = /*[[${#authentication.principal.displayName}]]*/ ''; // Use displayName for display (not getName())
+            const profileImage = /*[[${#authentication.principal.profileImage}]]*/ '';
+            
+            // Determine login method from authentication
+            const authDetails = /*[[${#authentication.details}]]*/ {};
+            let loginMethod = 'email';
+            
+            // Check if this is OAuth authentication
+            const registrationId = /*[[${#authentication.authorizedClientRegistrationId}]]*/ '';
+            if (registrationId) {
+                loginMethod = registrationId.toLowerCase();
+            }
+            
+            if (userEmail) {
+                LastLoginService.saveLastLogin({
+                    email: userEmail,
+                    userName: userName || userEmail.split('@')[0],
+                    loginMethod: loginMethod,
+                    profileImageUrl: profileImage || null
+                });
+            }
+        }
+        
+        // Redirect to homepage after 1 second
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1000);
+    </script>
+</body>
+</html>

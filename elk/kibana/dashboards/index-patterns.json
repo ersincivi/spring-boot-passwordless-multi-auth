@@ -1,0 +1,29 @@
+{
+  "version": "8.13.4",
+  "objects": [
+    {
+      "id": "security-audit-*",
+      "type": "index-pattern",
+      "attributes": {
+        "title": "security-audit-*",
+        "timeFieldName": "@timestamp"
+      }
+    },
+    {
+      "id": "application-logs-*",
+      "type": "index-pattern",
+      "attributes": {
+        "title": "application-logs-*",
+        "timeFieldName": "@timestamp"
+      }
+    },
+    {
+      "id": "container-logs-*",
+      "type": "index-pattern",
+      "attributes": {
+        "title": "container-logs-*",
+        "timeFieldName": "@timestamp"
+      }
+    }
+  ]
+}

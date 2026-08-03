@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title th:text="${pageTitle} ?: 'Passwordless Multi-Auth'">Passwordless Multi-Auth</title>
+    <link rel="stylesheet" href="/css/app.css" />
+
+    <!-- <link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+    <link rel="shortcut icon" href="/images/favicon.ico" /> -->
+</head>
+<body>
+<div th:replace="fragments/lang :: lang"></div>
+
+<header class="sp-header">
+    <div class="container header-inner">
+        <a class="brand" href="/">Passwordless Multi-Auth</a>
+        <nav class="nav">
+            <a href="/" th:text="#{{nav.home}}">Home</a>
+            <a href="/dashboard" th:text="#{{nav.dashboard}}">Dashboard</a>
+            <a href="/admin" sec:authorize="hasRole('ADMIN')">Admin</a>
+            <a href="/service" sec:authorize="hasRole('SERVICE')">Service</a>
+            <a href="/settings" th:text="#{{nav.settings}}">Settings</a>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <div th:fragment="layout(content)">
+        <div th:replace="${content}"></div>
+    </div>
+</main>
+
+<footer class="sp-footer">
+    <div class="container">
+        <p>© <span th:text="${#dates.format(#dates.createNow(), 'yyyy')}">2025</span> Passwordless Multi-Auth</p>
+    </div>
+    </footer>
+</body>
+</html>
+
+
