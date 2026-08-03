@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Start Secure App - Minimal Setup
+# Start Passwordless Multi-Auth - Minimal Setup
 # Only starts the core services needed for the application to work
+# (the app itself runs on the host: ./mvnw spring-boot:run)
 
 set -e
 
@@ -40,7 +41,7 @@ sleep 15
 echo "Checking PostgreSQL connection..."
 timeout=60
 counter=0
-while ! docker-compose exec postgres pg_isready -U secure > /dev/null 2>&1; do
+while ! docker-compose exec postgres pg_isready -U passwordless > /dev/null 2>&1; do
     sleep 2
     counter=$((counter + 2))
     if [ $counter -ge $timeout ]; then
@@ -52,24 +53,28 @@ done
 
 echo -e "${GREEN}✅ PostgreSQL is ready                    ${NC}"
 
-# Start PgAdmin for database management
-echo -e "${BLUE}🗄️ Starting PgAdmin...${NC}"
-docker-compose up -d pgadmin
+# Start PgAdmin for database management (needs PGADMIN_PASSWORD in .env)
+if [ -f .env ] && grep -qE '^PGADMIN_PASSWORD=.+' .env; then
+    echo -e "${BLUE}🗄️ Starting PgAdmin...${NC}"
+    docker-compose up -d pgadmin
+else
+    echo -e "${YELLOW}⚠️  PGADMIN_PASSWORD is not set in .env — skipping PgAdmin (optional).${NC}"
+fi
 
 echo ""
-echo -e "${GREEN}🎉 Passwordless Multi-Auth App is starting up!${NC}"
+echo -e "${GREEN}🎉 Infrastructure is up!${NC}"
 echo ""
 echo -e "${BLUE}📋 Running Services:${NC}"
 docker-compose ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}"
 echo ""
 echo -e "${BLUE}🔗 Access Points:${NC}"
-echo "   • Passwordless Multi-Auth App: http://localhost:8585"
-echo "   • PgAdmin: http://localhost:5050 (admin@example.com/admin)"
+echo "   • App (after ./mvnw spring-boot:run): http://localhost:8585"
+echo "   • PgAdmin: http://localhost:5050 (admin@example.com / PGADMIN_PASSWORD from .env)"
 echo "   • Mailpit (Email): http://localhost:8025"
 echo "   • PostgreSQL: localhost:5432"
 echo "   • Redis: localhost:6379"
 echo ""
 echo -e "${BLUE}🔧 Useful Commands:${NC}"
-echo "   • View app logs: docker-compose logs -f passwordless-app"
-echo "   • Stop services: docker-compose stop postgres redis mailpit passwordless-app pgadmin"
-echo "   • Restart app: docker-compose restart passwordless-app"
+echo "   • Start the app: ./mvnw spring-boot:run"
+echo "   • View infra logs: docker-compose logs -f postgres redis mailpit"
+echo "   • Stop services: docker-compose stop postgres redis mailpit pgadmin"

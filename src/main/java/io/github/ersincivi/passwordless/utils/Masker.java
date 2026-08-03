@@ -2,12 +2,12 @@ package io.github.ersincivi.passwordless.utils;
 
 public class Masker {
     /**
-     * E-posta adresini belirli bir kurala göre maskeler:
+     * Masks an e-mail address according to a fixed rule:
      * Shows the first 2 characters of the local part and the domain; masks the rest with asterisks.
      * The TLD (e.g. .com) is shown in full.
      * Example: admin@example.com -> ad***@ex*****.com
      *
-     * @param email Maskelenecek e-posta adresi.
+     * @param email The e-mail address to mask.
      * @return The masked e-mail address.
      */
     public static String maskEmail(String email) {
@@ -83,7 +83,7 @@ public class Masker {
              return phoneNumber;
         }
 
-        // Maskeleme Bölgesi:
+        // Masked region:
         int maskLength = length - prefixShowLength - suffixShowLength;
         String prefix = cleanedNumber.substring(0, prefixShowLength);
         String suffix = cleanedNumber.substring(length - suffixShowLength);

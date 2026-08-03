@@ -243,12 +243,12 @@ function initializeLanguageSwitcher() {
 // 		});
 // 	}
 
-//     // Şifre alanına odaklanıldığında uyarıları göster (animasyonlu)
+//     // Show the hints when the password field gains focus (animated)
 //     passwordInput.addEventListener('focus', () => {
-//         warningAnimation.style.maxHeight = warningAnimation.scrollHeight + 'px'; // Uyarıları aç
+//         warningAnimation.style.maxHeight = warningAnimation.scrollHeight + 'px'; // expand the hints
 //     });
 
-//     // Odak kalktığında uyarıları gizle (animasyonlu)
+//     // Hide the hints on blur (animated)
 //     passwordInput.addEventListener('blur', () => {
 //         // Only hide if not focused on requirements
 //         setTimeout(() => {

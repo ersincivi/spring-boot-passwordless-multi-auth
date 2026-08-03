@@ -1,30 +1,26 @@
-# version: "3.9"
 services:
-  # passwordless-app:
-  #   build: .
-  #   container_name: passwordless_app
-  #   ports:
-  #     - "8585:8585"
-  #   environment:
-  #     - SPRING_PROFILES_ACTIVE=prod
-  #     - DB_URL=jdbc:postgresql://postgres:5432/passwordlessdb
-  #     - DB_USERNAME=passwordless
-  #     - DB_PASSWORD=passwordless
-  #     - REDIS_HOST=redis
-  #     - REDIS_PASSWORD=${REDIS_PASSWORD}
-  #     - MAIL_HOST=smtp.gmail.com
-  #     - MAIL_PORT=465 # 465 SSL, 587 TLS
-  #     - MAIL_USERNAME=user@example.com
-  #     - MAIL_PASSWORD=${MAIL_PASSWORD} 
-  #   volumes:
-  #     - ./logs:/app/logs # Write application logs to the host machine
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_started
-  #   networks:
-  #     - passwordless_network
+  # Optional: run the app itself as a container (started by start-prod.sh).
+  # The `docker` profile points at the postgres/redis/mailpit services below.
+  # For day-to-day development, skip this and run `./mvnw spring-boot:run` instead.
+  passwordless-app:
+    build: .
+    container_name: passwordless_app
+    ports:
+      - "8585:8585"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    volumes:
+      - ./logs:/app/logs # Write application logs to the host machine
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    networks:
+      - passwordless_network
   postgres:
     image: postgres:18.3-alpine
     container_name: passwordless_postgres
@@ -35,7 +31,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres:18+ expects the mount at /var/lib/postgresql (not .../data)
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U passwordless"]
       interval: 10s

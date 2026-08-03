@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Start Secure App - Setup
-# Only starts the core services needed for the application to work
+# Start Passwordless Multi-Auth - App as a container
+# Starts the infrastructure AND the app itself as a Docker container
+# (SPRING_PROFILES_ACTIVE=docker; image is built from the local Dockerfile)
 
 set -e
 
@@ -40,7 +41,7 @@ sleep 15
 echo "Checking PostgreSQL connection..."
 timeout=60
 counter=0
-while ! docker-compose exec postgres pg_isready -U secure > /dev/null 2>&1; do
+while ! docker-compose exec postgres pg_isready -U passwordless > /dev/null 2>&1; do
     sleep 2
     counter=$((counter + 2))
     if [ $counter -ge $timeout ]; then
@@ -52,13 +53,17 @@ done
 
 echo -e "${GREEN}✅ PostgreSQL is ready                    ${NC}"
 
-# Start PgAdmin for database management
-echo -e "${BLUE}🗄️ Starting PgAdmin...${NC}"
-docker-compose up -d pgadmin
+# Start PgAdmin for database management (needs PGADMIN_PASSWORD in .env)
+if [ -f .env ] && grep -qE '^PGADMIN_PASSWORD=.+' .env; then
+    echo -e "${BLUE}🗄️ Starting PgAdmin...${NC}"
+    docker-compose up -d pgadmin
+else
+    echo -e "${YELLOW}⚠️  PGADMIN_PASSWORD is not set in .env — skipping PgAdmin (optional).${NC}"
+fi
 
-# Start the main application
-echo -e "${BLUE}🚀 Starting Passwordless Multi-Auth Application...${NC}"
-docker-compose up -d passwordless-app
+# Build and start the main application container
+echo -e "${BLUE}🚀 Building & starting the Passwordless Multi-Auth container...${NC}"
+docker-compose up -d --build passwordless-app
 
 echo ""
 echo -e "${GREEN}🎉 Passwordless Multi-Auth App is starting up!${NC}"
@@ -68,7 +73,7 @@ docker-compose ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}"
 echo ""
 echo -e "${BLUE}🔗 Access Points:${NC}"
 echo "   • Passwordless Multi-Auth App: http://localhost:8585"
-echo "   • PgAdmin: http://localhost:5050 (admin@example.com/admin)"
+echo "   • PgAdmin: http://localhost:5050 (admin@example.com / PGADMIN_PASSWORD from .env)"
 echo "   • Mailpit (Email): http://localhost:8025"
 echo "   • PostgreSQL: localhost:5432"
 echo "   • Redis: localhost:6379"

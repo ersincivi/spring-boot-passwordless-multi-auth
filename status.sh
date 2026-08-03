@@ -22,42 +22,42 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 echo -e "${BLUE}📋 Service Status:${NC}"
-docker-compose ps --format "table {{.Name}}\\t{{.State}}\\t{{.Status}}\\t{{.Ports}}"
+docker ps --filter "name=passwordless_" --format "table {{.Names}}\\t{{.Status}}\\t{{.Ports}}"
 
 echo ""
 echo -e "${BLUE}🔗 Available Access Points:${NC}"
 
 # Check and display access points for running services
-if docker-compose ps | grep -q "passwordless_app.*Up"; then
-    echo -e "${GREEN}✅ Secure App: http://localhost:8585${NC}"
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_app .*Up"; then
+    echo -e "${GREEN}✅ App: http://localhost:8585${NC}"
 fi
 
-if docker-compose ps | grep -q "passwordless_kibana.*Up"; then
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_kibana .*Up"; then
     echo -e "${GREEN}✅ Kibana: http://localhost:5601${NC}"
 fi
 
-if docker-compose ps | grep -q "passwordless_grafana.*Up"; then
-    echo -e "${GREEN}✅ Grafana: http://localhost:3000 (user: admin, password: $GRAFANA_ADMIN_PASSWORD from .env)${NC}"
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_grafana .*Up"; then
+    echo -e "${GREEN}✅ Grafana: http://localhost:3000 (user: admin, password: GRAFANA_ADMIN_PASSWORD from .env)${NC}"
 fi
 
-if docker-compose ps | grep -q "passwordless_prometheus.*Up"; then
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_prometheus .*Up"; then
     echo -e "${GREEN}✅ Prometheus: http://localhost:9090${NC}"
 fi
 
-if docker-compose ps | grep -q "passwordless_elasticsearch.*Up"; then
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_elasticsearch .*Up"; then
     echo -e "${GREEN}✅ Elasticsearch: http://localhost:9200${NC}"
 fi
 
-if docker-compose ps | grep -q "passwordless_pgadmin.*Up"; then
-    echo -e "${GREEN}✅ PgAdmin: http://localhost:5050 (admin@example.com/admin)${NC}"
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_pgadmin .*Up"; then
+    echo -e "${GREEN}✅ PgAdmin: http://localhost:5050 (admin@example.com / PGADMIN_PASSWORD from .env)${NC}"
 fi
 
-if docker-compose ps | grep -q "passwordless_mailpit.*Up"; then
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_mailpit .*Up"; then
     echo -e "${GREEN}✅ Mailpit: http://localhost:8025${NC}"
 fi
 
-if docker-compose ps | grep -q "elasticsearch-head.*Up"; then
-    echo -e "${GREEN}✅ Elasticsearch Head: http://localhost:9100${NC}"
+if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_elasticsearch_head .*Up"; then
+    echo -e "${GREEN}✅ Elasticsearch Head: http://localhost:9101${NC}"
 fi
 
 echo ""
@@ -66,7 +66,7 @@ echo "   1. View service logs: docker-compose logs -f [service-name]"
 echo "   2. Restart service: docker-compose restart [service-name]"
 echo "   3. Stop service: docker-compose stop [service-name]"
 echo "   4. Start service: docker-compose start [service-name]"
-echo "   5. Scale service: docker-compose scale [service-name]=2"
+echo "   5. Scale service: docker-compose up -d --scale [service-name]=2"
 echo ""
 echo -e "${BLUE}📊 Resource Usage:${NC}"
 if command -v docker &> /dev/null; then

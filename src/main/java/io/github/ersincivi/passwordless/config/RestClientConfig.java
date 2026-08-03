@@ -8,7 +8,7 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class RestClientConfig {
 
-    // GitHub API'sine özel bir RestClient Bean
+    // RestClient bean dedicated to the GitHub API
     @Bean
     public RestClient gitHubRestClient(RestClient.Builder builder) {
         return builder

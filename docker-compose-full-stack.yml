@@ -11,16 +11,9 @@ services:
     ports:
       - "8585:8585"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
-      - DB_URL=jdbc:postgresql://postgres:5432/passwordlessdb
-      - DB_USERNAME=passwordless
-      - DB_PASSWORD=passwordless
-      - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - MAIL_HOST=smtp.gmail.com
-      - MAIL_PORT=465 # 465 SSL, 587 TLS
-      - MAIL_USERNAME=user@example.com
-      - MAIL_PASSWORD=${MAIL_PASSWORD} 
+      # The `docker` profile targets the postgres/redis/mailpit services below.
+      - SPRING_PROFILES_ACTIVE=docker
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     volumes:
       - ./logs:/app/logs # Write application logs to the host machine
     depends_on:
@@ -32,7 +25,7 @@ services:
       - passwordless_network
 
   postgres:
-    image: postgres:18-alpine
+    image: postgres:18.3-alpine
     container_name: passwordless_postgres
     environment:
       POSTGRES_DB: passwordlessdb
@@ -41,7 +34,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # postgres:18+ expects the mount at /var/lib/postgresql (not .../data)
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U passwordless"]
       interval: 10s
@@ -51,15 +45,15 @@ services:
       - passwordless_network
 
   redis:
-    image: redis:7-alpine
+    image: redis:8.6.1-alpine
     container_name: passwordless_redis
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -155,7 +149,6 @@ services:
       - "9121:9121"
     environment:
       - REDIS_ADDR=redis://redis:6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
     networks:
       - passwordless_network
 
@@ -293,7 +286,7 @@ services:
     image: mobz/elasticsearch-head:5
     container_name: passwordless_elasticsearch_head
     ports:
-      - "9100:9100"
+      - "9101:9100" # host 9100 is taken by node-exporter
     depends_on:
       - elasticsearch
     networks:

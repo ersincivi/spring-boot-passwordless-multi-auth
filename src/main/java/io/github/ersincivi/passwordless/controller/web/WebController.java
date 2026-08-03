@@ -1,6 +1,7 @@
 package io.github.ersincivi.passwordless.controller.web;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,8 +18,15 @@ public class WebController {
 	@Autowired
 	private CaptchaService captchaService;
 
+	// Google One Tap client id for the landing page. Comes from the
+	// GOOGLE_CLIENT_ID environment variable (see .env.example); the shipped
+	// default keeps One Tap disabled until you supply your own.
+	@Value("${spring.security.oauth2.client.registration.google.client-id}")
+	private String googleClientId;
+
 	@GetMapping("/")
-	public String index() {
+	public String index(Model model) {
+		model.addAttribute("googleClientId", googleClientId);
 		return "index";
 	}
 

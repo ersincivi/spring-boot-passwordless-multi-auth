@@ -342,7 +342,8 @@ public class AuthApiController {
                             HttpStatus.UNAUTHORIZED.value(), http));
         }
 
-        User user = userService.getFullUserByEmail(username.get()).orElse(null);
+        // Exchange codes are bound to the username (see verify above), not the e-mail
+        User user = userService.getFullUserByUsername(username.get()).orElse(null);
         if (user == null || !user.isEnabled()) {
             apiLoginEventService.onLoginFailure(username.get(), "account_disabled", http);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -430,7 +431,7 @@ public class AuthApiController {
         }
 
         // T4.2: audit parity - lockout reset, LOGIN_SUCCESS event, geo-change alert
-        User user = userService.getFullUserByEmail(request.username()).orElse(null);
+        User user = userService.getFullUserByUsername(request.username()).orElse(null);
         if (user != null) {
             apiLoginEventService.onLoginSuccess(user, "totp", http, apiI18nService.getCurrentLocale(http));
         }

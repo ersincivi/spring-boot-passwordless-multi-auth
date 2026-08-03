@@ -74,9 +74,9 @@ provide all three.
 git clone https://github.com/ersincivi/spring-boot-passwordless-multi-auth.git
 cd spring-boot-passwordless-multi-auth
 
-# 1. Configuration — one secret is enough to start
+# 1. Configuration — the dev profile ships with safe local defaults,
+#    so an empty copy is enough to start
 cp .env.example .env
-echo "JWT_SECRET=$(openssl rand -base64 48)" >> .env
 
 # 2. Infrastructure: postgres + redis + mailpit
 ./start-dev.sh
@@ -90,8 +90,10 @@ Open <http://localhost:8585>. The dev profile seeds two accounts —
 passwords, because nothing here has one.
 
 > 💡 Google/GitHub login needs OAuth client keys in `.env` — optional, every
-> other flow works without them. See [`.env.example`](.env.example) for the
-> full annotated list.
+> other flow works without them. Spring does not read `.env` by itself, so
+> after filling in values export them first:
+> `set -a; source .env; set +a; ./mvnw spring-boot:run`.
+> See [`.env.example`](.env.example) for the full annotated list.
 
 ## 🌐 Logging in (web)
 

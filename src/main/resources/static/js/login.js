@@ -338,7 +338,7 @@ function getCsrfToken() {
         return decodeURIComponent(cookieValue);
     }
 
-    // Daha güvenli bir regex ile çerez okuma
+    // Cookie read with a stricter regex
     // const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
     // if (match) return decodeURIComponent(match[2]);
 

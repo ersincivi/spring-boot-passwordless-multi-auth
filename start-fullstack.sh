@@ -5,6 +5,9 @@
 
 set -e
 
+# All services live in docker-compose-full-stack.yml
+COMPOSE="docker-compose -f docker-compose-full-stack.yml"
+
 # Color codes
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -27,7 +30,7 @@ echo -e "${GREEN}✅ Docker and docker-compose are available ${NC}"
 echo ""
 echo -e "${BLUE}🐳 Phase 1: Starting postgres, redis and mailpit containers...${NC}"
 
-docker-compose-full-stack up -d postgres redis mailpit
+${COMPOSE} up -d postgres redis mailpit
 
 echo -e "${YELLOW}⏳ Waiting for core services...${NC}"
 sleep 15
@@ -35,7 +38,7 @@ sleep 15
 # Check PostgreSQL
 timeout=60
 counter=0
-while ! docker-compose-full-stack exec postgres pg_isready -U secure > /dev/null 2>&1; do
+while ! ${COMPOSE} exec postgres pg_isready -U passwordless > /dev/null 2>&1; do
     sleep 2
     counter=$((counter + 2))
     if [ $counter -ge $timeout ]; then
@@ -48,31 +51,24 @@ done
 echo -e "${GREEN}✅ Postgres, redis and mailpit containers started!  ${NC}"
 echo ""
 echo -e "${BLUE}🐳 Phase 2: Starting monitoring (prometheus, grafana) containers...${NC}"
-docker-compose-full-stack up -d prometheus grafana node-exporter redis-exporter postgres-exporter
+${COMPOSE} up -d prometheus grafana node-exporter redis-exporter postgres-exporter
 echo -e "${GREEN}✅ Monitoring started!${NC}"
 echo ""
-# Create necessary directories
+# Create the host log directory shared with filebeat
 echo -e "${BLUE}📁 Phase 3: Creating necessary directories...${NC}"
 
 mkdir -p logs
-mkdir -p elk/elasticsearch/data
-mkdir -p elk/kibana/data
-mkdir -p filebeat/data
 
-# Set proper permissions for Elasticsearch data directory
-sudo chown -R 1000:1000 elk/elasticsearch/data 2>/dev/null || true
-chmod -R 755 elk/
-
-echo -e "${GREEN}✅ Directories created and permissions set!${NC}"
+echo -e "${GREEN}✅ Directories created!${NC}"
 echo ""
 # Start the ELK Stack
 echo -e "${BLUE}🐳 Phase 4: Starting Elasticsearch container...${NC}"
-docker-compose-full-stack up -d elasticsearch
+${COMPOSE} up -d elasticsearch
 
 echo -e "${YELLOW}⏳ Waiting for Elasticsearch...${NC}"
 timeout=300
 counter=0
-while ! curl -s http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s > /dev/null 2>&1; do
+while ! curl -s "http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s" > /dev/null 2>&1; do
     sleep 5
     counter=$((counter + 5))
     if [ $counter -ge $timeout ]; then
@@ -84,7 +80,7 @@ done
 echo -e "${GREEN}✅ Elasticsearch started!${NC}"
 echo ""
 echo -e "${BLUE}📊 Phase 5: Starting ELK Stack (logstash, kibana, filebeat, elasticsearch-head)...${NC}"
-docker-compose-full-stack up -d logstash kibana filebeat elasticsearch-head
+${COMPOSE} up -d logstash kibana filebeat elasticsearch-head
 
 echo -e "${YELLOW}⏳ Waiting for Kibana...${NC}"
 timeout=300
@@ -101,7 +97,7 @@ done
 echo -e "${GREEN}✅ ELK Stack started! ${NC}"
 echo ""
 echo -e "${BLUE}🚀 Phase 6: Starting spring boot app and pgadmin...${NC}"
-docker-compose-full-stack up -d passwordless-app pgadmin
+${COMPOSE} up -d passwordless-app pgadmin
 echo -e "${GREEN}✅ Spring boot app and pgadmin started! ${NC}"
 echo ""
 echo -e "${BLUE}⚙️ Phase 7: Setting up Elasticsearch logs templates...${NC}"
@@ -221,29 +217,29 @@ echo ""
 echo -e "${GREEN}🎉 Full Monitoring Stack is ready!${NC}"
 echo ""
 echo -e "${BLUE}📋 All Running Services:${NC}"
-docker-compose-full-stack ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}"
+${COMPOSE} ps --format "table {{.Name}}\\t{{.Status}}\\t{{.Ports}}"
 echo ""
 echo -e "${BLUE}🔗 Access Points:${NC}"
 echo "   🚀 Main Application:"
 echo "      • Passwordless Multi-Auth App: http://localhost:8585"
-echo "      • PgAdmin: http://localhost:5050 (admin@example.com/admin)"
+echo "      • PgAdmin: http://localhost:5050 (admin@example.com / PGADMIN_PASSWORD from .env)"
 echo "      • Mailpit: http://localhost:8025"
 echo ""
 echo "   📊 Monitoring & Metrics:"
-echo "      • Grafana: http://localhost:3000 (user: admin, password: $GRAFANA_ADMIN_PASSWORD from .env)"
+echo "      • Grafana: http://localhost:3000 (user: admin, password: GRAFANA_ADMIN_PASSWORD from .env)"
 echo "      • Prometheus: http://localhost:9090"
 echo ""
 echo "   🔍 Log Analysis:"
 echo "      • Kibana: http://localhost:5601"
 echo "      • Elasticsearch: http://localhost:9200"
-echo "      • Elasticsearch Head: http://localhost:9100"
+echo "      • Elasticsearch Head: http://localhost:9101"
 echo "      • Logstash: http://localhost:9600"
 echo ""
 echo -e "${BLUE}🔧 Management Commands:${NC}"
-echo "   • Stop all: docker-compose-full-stack down"
-echo "   • View all logs: docker-compose-full-stack logs -f"
-echo "   • Restart service: docker-compose-full-stack restart [service-name]"
-echo "   • Scale service: docker-compose-full-stack scale [service-name]=2"
+echo "   • Stop all: ${COMPOSE} down"
+echo "   • View all logs: ${COMPOSE} logs -f"
+echo "   • Restart service: ${COMPOSE} restart [service-name]"
+echo "   • Scale service: ${COMPOSE} up -d --scale [service-name]=2"
 echo ""
 echo -e "${BLUE}📖 Next Steps:${NC}"
 echo "   1. Configure Grafana dashboards for metrics visualization"

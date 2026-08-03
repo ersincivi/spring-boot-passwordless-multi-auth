@@ -23,16 +23,19 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            # Optional: defaults keep the app bootable without OAuth keys;
+            # Google login only works when the real values are set in the environment.
+            client-id: ${GOOGLE_CLIENT_ID:google-client-id-not-set}
+            client-secret: ${GOOGLE_CLIENT_SECRET:google-client-secret-not-set}
             redirect-uri: http://localhost:8585/login/oauth2/code/google
             scope:
               - openid
               - profile
               - email
           github:
-            client-id: ${GITHUB_CLIENT_ID}
-            client-secret: ${GITHUB_CLIENT_SECRET}
+            # Optional: see the note on the Google registration above.
+            client-id: ${GITHUB_CLIENT_ID:github-client-id-not-set}
+            client-secret: ${GITHUB_CLIENT_SECRET:github-client-secret-not-set}
             redirect-uri: http://localhost:8585/login/oauth2/code/github
             scope: # Scopes requested from the user
               - read:user 
@@ -157,16 +160,16 @@ spring:
       minimum-idle: 5 # Max 30
       # Maximum idle time for a pooled connection (ms).
       # Takes effect when minimum-idle is set.
-      idle-timeout: 600000 # 10 dakika (600 saniye)
+      idle-timeout: 600000 # 10 minutes (600 seconds)
       # Maximum time a client (the app) waits to obtain a connection (ms).
       connection-timeout: 5000
       # Maximum lifetime of a connection in the pool (ms).
       # Must be SHORTER than idle-timeout and the database timeout setting.
-      # Genellikle 30 dakikadan (1800000 ms) biraz az tutulur.
-      max-lifetime: 1740000 # 29 dakika
+      # Usually kept slightly below 30 minutes (1800000 ms).
+      max-lifetime: 1740000 # 29 minutes
       # Used to detect slow queries or connection leaks (ms).
       # A connection unused longer than this is logged.
-      leak-detection-threshold: 2000 # 2 saniye
+      leak-detection-threshold: 2000 # 2 seconds
       # Pool name; helps when tracing logs.
       pool-name: HikariHighTrafficPool
   jpa:
@@ -180,7 +183,7 @@ spring:
     redis:
       host: localhost
       port: 6379
-      password: ${REDIS_PASSWORD}
+      password: ${REDIS_PASSWORD:}
       database: 0
   mail:
     host: localhost
@@ -287,16 +290,16 @@ spring:
       minimum-idle: 10 # Max 30
       # Maximum idle time for a pooled connection (ms).
       # Takes effect when minimum-idle is set.
-      idle-timeout: 600000 # 10 dakika (600 saniye)
+      idle-timeout: 600000 # 10 minutes (600 seconds)
       # Maximum time a client (the app) waits to obtain a connection (ms).
       connection-timeout: 5000
       # Maximum lifetime of a connection in the pool (ms).
       # Must be SHORTER than idle-timeout and the database timeout setting.
-      # Genellikle 30 dakikadan (1800000 ms) biraz az tutulur.
-      max-lifetime: 1740000 # 29 dakika
+      # Usually kept slightly below 30 minutes (1800000 ms).
+      max-lifetime: 1740000 # 29 minutes
       # Used to detect slow queries or connection leaks (ms).
       # A connection unused longer than this is logged.
-      leak-detection-threshold: 2000 # 2 saniye
+      leak-detection-threshold: 2000 # 2 seconds
       # Pool name; helps when tracing logs.
       pool-name: HikariHighTrafficPool
   jpa:
@@ -310,7 +313,7 @@ spring:
     redis:
       host: redis
       port: 6379
-      password: ${REDIS_PASSWORD}
+      password: ${REDIS_PASSWORD:}
       database: 0
   mail:
     host: mailpit
@@ -409,16 +412,16 @@ spring:
       minimum-idle: 10 # Max 30
       # Maximum idle time for a pooled connection (ms).
       # Takes effect when minimum-idle is set.
-      idle-timeout: 600000 # 10 dakika (600 saniye)
+      idle-timeout: 600000 # 10 minutes (600 seconds)
       # Maximum time a client (the app) waits to obtain a connection (ms).
       connection-timeout: 5000
       # Maximum lifetime of a connection in the pool (ms).
       # Must be SHORTER than idle-timeout and the database timeout setting.
-      # Genellikle 30 dakikadan (1800000 ms) biraz az tutulur.
-      max-lifetime: 1740000 # 29 dakika
+      # Usually kept slightly below 30 minutes (1800000 ms).
+      max-lifetime: 1740000 # 29 minutes
       # Used to detect slow queries or connection leaks (ms).
       # A connection unused longer than this is logged.
-      leak-detection-threshold: 2000 # 2 saniye
+      leak-detection-threshold: 2000 # 2 seconds
       # Pool name; helps when tracing logs.
       pool-name: HikariHighTrafficPool
   jpa:

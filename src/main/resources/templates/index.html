@@ -393,16 +393,16 @@
 
 		<!-- Google One Tap Login Prompt
 
-		     Replace the placeholder below with your own OAuth client ID from
-		     Google Cloud Console -> APIs & Services -> Credentials, and use the
-		     SAME value in the google.accounts.id.initialize(...) call further
-		     down this file. A client ID is public by design (the browser sees
-		     it), but it is tied to your own Google project, so the shipped
-		     placeholder keeps One Tap disabled until you supply yours. The
-		     matching secret belongs in .env as GOOGLE_CLIENT_SECRET.
+		     The client ID is rendered from the GOOGLE_CLIENT_ID environment
+		     variable (Google Cloud Console -> APIs & Services -> Credentials;
+		     set it in .env, see .env.example). A client ID is public by design
+		     (the browser sees it), but it is tied to your own Google project,
+		     so the shipped default keeps One Tap disabled until you supply
+		     yours. The matching secret belongs in .env as GOOGLE_CLIENT_SECRET.
 		-->
 		<div sec:authorize="isAnonymous()" id="g_id_onload"
 		     data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+		     th:attr="data-client_id=${googleClientId}"
 		     data-callback="handleGoogleOneTapResponse"
 		     data-auto_prompt="true"
 		     data-cancel_on_tap_outside="false"
@@ -499,9 +499,10 @@
 				// Initialize the Google Sign-In button as fallback
 				try {
 					google.accounts.id.initialize({
-						// Same OAuth client ID as the data-client_id attribute above.
-						// Put your own value in both places - they must match.
-						client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+						// The client ID is rendered into the data-client_id attribute
+						// above from the GOOGLE_CLIENT_ID environment variable -
+						// set it in .env, no template editing needed.
+						client_id: document.getElementById('g_id_onload').dataset.client_id,
 						callback: handleGoogleOneTapResponse,
 						auto_select: false,
 						cancel_on_tap_outside: false
