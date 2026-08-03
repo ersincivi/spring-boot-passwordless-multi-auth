@@ -16,22 +16,16 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 /**
- * The "brain" for Magic Link authentication.
- * 
- * LSP Compliance: This Provider follows the same contract as other AuthenticationProviders
- * (e.g., DaoAuthenticationProvider for OAuth2). It produces the same CustomUserDetails principal
- * that all other authentication flows produce, ensuring interchangeability.
+ * Validates a MagicLink token and turns it into an authentication.
  *
- * This Provider is registered with the AuthenticationManager and knows
- * how to handle the MagicLinkAuthenticationToken.
- * It contains all logic previously in MagicLinkWebController.verifyMagicLink.
- * 
- * Key Improvements:
- * - Delegates to AuthenticationManager (LSP compliance)
- * - Produces unified CustomUserDetails principal
- * - Allows AuthenticationSuccessHandler to run (GeoIpService, audit logging)
- * - Centralizes account status checks
- * - Removes duplicated 2FA logic (TotpFilter handles it)
+ * <p>Registered with the {@code AuthenticationManager} and selected for
+ * {@code MagicLinkAuthenticationToken}. It honours the same contract as the
+ * other providers — {@code DaoAuthenticationProvider} for OAuth2, for
+ * instance — and produces the same {@code CustomUserDetails} principal every
+ * other flow produces, so the flows stay interchangeable downstream.
+ *
+ * <p>Account status checks live here, in one place; 2FA is not repeated,
+ * because {@code TotpFilter} owns it.
  */
 @Component
 public class MagicLinkAuthenticationProvider implements AuthenticationProvider {
@@ -72,7 +66,7 @@ public class MagicLinkAuthenticationProvider implements AuthenticationProvider {
 
         log.info("MagicLink Provider: Token verified for email: {}", email);
 
-        // 3. Load the Unified Principal (LSP RESTORED)
+        // 3. Load the unified principal
         // IMPORTANT: MagicLink stores EMAIL in Redis, but UserDetailsService expects USERNAME.
         // Solution: First get the User by email, then load CustomUserDetails by username.
         
@@ -86,7 +80,7 @@ public class MagicLinkAuthenticationProvider implements AuthenticationProvider {
         log.debug("MagicLink Provider: Found user {} for email: {}", user.getUsername(), email);
         
         // Step 3b: Load CustomUserDetails by username (same as OAuth2, OIDC flows)
-        // This ensures LSP compliance - the principal type is consistent across all auth methods.
+        // The principal type stays consistent across all authentication methods.
         CustomUserDetails userDetails;
         try {
             userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(user.getUsername());
@@ -113,7 +107,7 @@ public class MagicLinkAuthenticationProvider implements AuthenticationProvider {
 
         // 5. SUCCESS
         // We do NOT check for TOTP here. We let the TotpFilter do its job
-        // after this provider succeeds. This centralizes 2FA logic and maintains LSP.
+        // after this provider succeeds, which keeps 2FA logic in one place.
         // 
         // The TotpFilter will:
         // - Check if mfaEnabled = true
@@ -128,10 +122,8 @@ public class MagicLinkAuthenticationProvider implements AuthenticationProvider {
     }
 
     /**
-     * Tells the AuthenticationManager that this Provider *only*
+     * Tells the AuthenticationManager that this provider *only*
      * understands MagicLinkAuthenticationToken.
-     * 
-     * LSP Compliance: This follows the standard AuthenticationProvider contract.
      */
     @Override
     public boolean supports(Class<?> authentication) {

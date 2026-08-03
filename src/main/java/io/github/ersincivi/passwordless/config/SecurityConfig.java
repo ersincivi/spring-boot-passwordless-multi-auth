@@ -111,41 +111,31 @@ public class SecurityConfig {
     // ==================== Beans ====================
 
     /**
-     * ✅ RE-INTRODUCED: AuthenticationManager bean
-     * 
-     * LSP Compliance: The AuthenticationManager is the central "delegator" for ALL
-     * authentication types, including OAuth2 and our new MagicLink provider.
-     * 
-     * This bean is *required* for our custom filter to work.
-     * Getting it from AuthenticationConfiguration *does not* re-add
-     * password support. It just wires up the existing providers (like the
-     * one for OAuth2) and any custom ones we register (like MagicLink).
-     * 
-     * The AuthenticationManager delegates to registered AuthenticationProviders:
-     * - OAuth2LoginAuthenticationProvider (for OAuth2/OIDC flows)
-     * - MagicLinkAuthenticationProvider (for MagicLink flows)
-     * 
-     * This restores the Liskov Substitution Principle by ensuring all
-     * authentication flows converge at the same delegation point.
+     * Central delegator for every authentication type, including OAuth2 and
+     * MagicLink. Required by the custom MagicLink filter.
+     *
+     * <p>Taking it from {@code AuthenticationConfiguration} does not re-add
+     * password support — it wires up the providers already registered
+     * ({@code OAuth2LoginAuthenticationProvider} for OAuth2/OIDC,
+     * {@code MagicLinkAuthenticationProvider} for MagicLink), so all flows
+     * converge at one delegation point.
      */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
-        log.info("AuthenticationManager bean created for LSP-compliant authentication flows");
+        log.info("AuthenticationManager bean created; all authentication flows delegate to it");
         return authenticationConfiguration.getAuthenticationManager();
     }
 
     /**
      * Creates the MagicLinkAuthenticationFilter bean.
-     * 
-     * LSP Compliance: This filter uses the *same* success/failure handlers as all
-     * other authentication flows (OAuth2, OIDC). This ensures:
-     * - GeoIpService runs for MagicLink logins
-     * - AccountLockoutService clears failed attempts
-     * - SecurityAuditService logs authentication events
-     * - Remember-me service can be configured
-     * 
-     * We inject the AuthenticationManager and our *existing* handlers.
+     *
+     * <p>The filter is given the *same* success and failure handlers as every
+     * other authentication flow (OAuth2, OIDC), so MagicLink logins get GeoIP
+     * anomaly detection, cleared lockout counters, audit events, and remember-me
+     * if it is configured — without a second copy of that wiring.
+     *
+     * <p>The AuthenticationManager and the existing handlers are injected.
      */
     @Bean
     public MagicLinkAuthenticationFilter magicLinkAuthenticationFilter(
@@ -272,7 +262,7 @@ public class SecurityConfig {
             SessionRegistry sessionRegistry,
             // 1. Enhanced CSRF filter
             EnhancedCsrfFilter enhancedCsrfFilter,
-            // 2. MagicLink authentication filter (LSP-compliant)
+            // 2. MagicLink authentication filter
             MagicLinkAuthenticationFilter magicLinkAuthenticationFilter,
             // 3. TOTP enforcement filter
             TotpFilter totpFilter,
@@ -386,7 +376,7 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic
                 .realmName("Passwordless Multi-Auth Project Monitoring"))
                 
-                // ========== LSP-COMPLIANT FILTER CHAIN ==========
+                // ========== Authentication filter chain ==========
                 // Register our new MagicLink authentication provider with the security chain.
                 // The AuthenticationManager will now delegate to it for MagicLinkAuthenticationToken.
                 .authenticationProvider(magicLinkAuthenticationProvider)

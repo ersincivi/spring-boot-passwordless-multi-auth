@@ -26,21 +26,21 @@
 </p>
 
 <p align="center">
-  <a href="#-what-is-this">What is this</a> ·
-  <a href="#-first-run">First run</a> ·
-  <a href="#-logging-in-web">Web login</a> ·
-  <a href="#-logging-in-api">API login</a> ·
-  <a href="#-two-factor-login-totp">2FA</a> ·
-  <a href="#-location-change-alerts-geoip">Geo alerts</a> ·
-  <a href="#-project-structure">Structure</a> ·
-  <a href="#-monitoring">Monitoring</a> ·
-  <a href="#-documentation">Docs</a> ·
-  <a href="#-known-limitations">Limitations</a>
+  <a href="#what-is-this">What is this</a> ·
+  <a href="#first-run">First run</a> ·
+  <a href="#logging-in-web">Web login</a> ·
+  <a href="#logging-in-api">API login</a> ·
+  <a href="#two-factor-login-totp">2FA</a> ·
+  <a href="#location-change-alerts-geoip">Geo alerts</a> ·
+  <a href="#project-structure">Structure</a> ·
+  <a href="#monitoring">Monitoring</a> ·
+  <a href="#documentation">Docs</a> ·
+  <a href="#known-limitations">Limitations</a>
 </p>
 
 ---
 
-## 🟢 What is this
+## What is this
 
 Most Spring Security examples pick one lane: a Thymeleaf app with form login,
 *or* a stateless REST API with JWT. Real products need both at once — a
@@ -49,20 +49,20 @@ the seam between them. This repository is that seam, built out fully.
 
 There is no password column anywhere. Sign-in, on both surfaces, is:
 
-| Method | 🌐 Web (session) | 📱 API (JWT) |
+| Method | Web (session) | API (JWT) |
 |---|---|---|
-| ✉️ **Magic link** (e-mail) | ✅ | ✅ deep-link callback for mobile |
-| 🔢 **E-mail OTP** | ✅ | ✅ |
-| 🕐 **TOTP** (authenticator app, QR enrolment) | ✅ | ✅ |
-| 🇬 **Google Sign-In** (One Tap / OIDC) | ✅ | ✅ token exchange |
-| 🐙 **GitHub OAuth2** | ✅ | ✅ token exchange |
+| **Magic link** (e-mail) | ✅ | ✅ deep-link callback for mobile |
+| **E-mail OTP** | ✅ | ✅ |
+| **TOTP** (authenticator app, QR enrolment) | ✅ | ✅ |
+| **Google Sign-In** (One Tap / OIDC) | ✅ | ✅ token exchange |
+| **GitHub OAuth2** | ✅ | ✅ token exchange |
 
 Around the authentication core: Redis-backed distributed rate limiting,
 account lockout with audit events, GeoIP impossible-travel alerts, EN/DE/TR
 i18n on both surfaces, and a full local observability stack (Prometheus,
 Grafana, ELK) that starts with one script.
 
-## 🚀 First run
+## First run
 
 You need exactly two things installed:
 
@@ -93,13 +93,13 @@ Open <http://localhost:8585>. The dev profile seeds two accounts —
 `admin@example.com` (ADMIN) and `user@example.com` (USER) — with no
 passwords, because nothing here has one.
 
-> 💡 Google/GitHub login needs OAuth client keys in `.env` — optional, every
+> Google/GitHub login needs OAuth client keys in `.env` — optional, every
 > other flow works without them. Spring does not read `.env` by itself, so
 > after filling in values export them first:
 > `set -a; source .env; set +a; ./mvnw spring-boot:run`.
 > See [`.env.example`](.env.example) for the full annotated list.
 
-## 🌐 Logging in (web)
+## Logging in (web)
 
 1. Go to <http://localhost:8585/login> and enter `admin@example.com` or `user@example.com`.
 2. Choose **magic link** or **OTP** — either way an e-mail is sent.
@@ -112,7 +112,7 @@ app); after that, logins ask for the 6-digit code as a second factor. The
 whole loop — including lockout after repeated bad codes and the rate-limit
 counters — works offline against the containers.
 
-## 📱 Logging in (API)
+## Logging in (API)
 
 The same flow, as copy-paste `curl`. Full reference:
 [`docs/api-authentication.md`](docs/api-authentication.md).
@@ -167,7 +167,7 @@ Active JWTs are tracked in Redis (`jti` allow-list), so `POST
 `status=totp_required` and `POST /api/auth/totp/verify` takes the 6-digit
 code instead.
 
-## 🔐 Two-factor login (TOTP)
+## Two-factor login (TOTP)
 
 Any account can add a TOTP second factor (Google Authenticator, Aegis,
 1Password, …) on top of the passwordless flows:
@@ -200,15 +200,15 @@ Wrong codes count towards the same lockout counters as every other login
 surface, so brute-forcing the 6 digits trips the account lock, not just
 the rate limiter.
 
-## 🌍 Location-change alerts (GeoIP)
+## Location-change alerts (GeoIP)
 
 Every successful login compares the country of the current IP against the
 country of the previous one (MaxMind GeoLite2, fetched automatically into
 `./data` on first start). On a mismatch the user gets a security mail —
 delayed a few seconds via the Redis e-mail queue — with two links:
 
-- ✅ **"Yes, it was me"** — acknowledges the new location.
-- ❌ **"No, it's not me"** — immediately invalidates the target session
+- **"Yes, it was me"** — acknowledges the new location.
+- **"No, it's not me"** — immediately invalidates the target session
   server-side (Redis), no matter where that session is logged in.
 
 Try it locally without leaving your desk — plant a German IP as the
@@ -225,7 +225,7 @@ click *No, it's not me* and watch the session die. Local addresses resolve
 to `US` by design so the demo works offline; TOTP does not suppress the
 check — the two layers are independent.
 
-## 🏗 Project structure
+## Project structure
 
 ```
 src/main/java/io/github/ersincivi/passwordless/
@@ -247,7 +247,7 @@ else (Redis-backed sessions, CSRF, security headers). Neither chain's
 authentication mechanism is reachable from the other's routes — that
 separation is the point of the project.
 
-## 📊 Monitoring
+## Monitoring
 
 ```bash
 ./start-fullstack.sh   # app infra + Prometheus + Grafana + ELK
@@ -266,7 +266,7 @@ git-ignored token file Prometheus reads
 it the two application jobs show as DOWN. Details, custom metrics and the
 grok patterns: [`docs/monitoring.md`](docs/monitoring.md).
 
-## 📚 Documentation
+## Documentation
 
 | Document | Contents |
 |---|---|
@@ -275,7 +275,7 @@ grok patterns: [`docs/monitoring.md`](docs/monitoring.md).
 | [`docs/monitoring.md`](docs/monitoring.md) | Prometheus, Grafana, ELK — what runs where and how to read it |
 | [`docs/local-email-testing.md`](docs/local-email-testing.md) | How Mailpit replaces a real mail account in development |
 
-## ⚠️ Known limitations
+## Known limitations
 
 Stated here because a reader will find them anyway:
 
@@ -291,7 +291,7 @@ Stated here because a reader will find them anyway:
 - **Session and JWT lifetimes are tuned for demo convenience,** not for a
   production threat model.
 
-## 📄 License
+## License
 
 [MIT](LICENSE). GeoLite2 databases are distributed under MaxMind's own
 license and are not included in this repository.

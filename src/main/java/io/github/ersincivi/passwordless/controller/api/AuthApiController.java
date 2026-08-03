@@ -52,16 +52,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * REST API Authentication Controller - Passwordless Only
- * 
- * IMPORTANT: This controller has been factored to support PASSWORDLESS authentication only.
- * - MagicLink (Passwordless email-based authentication)
- * - OAuth2/OIDC Social Login (Google, GitHub)
- * - TOTP (Time-based One-Time Password) for MFA
- * 
- * For web-based authentication, see:
- * - MagicLinkWebController (MagicLink flow)
- * - OAuth2 configuration in SecurityConfig (Social login)
+ * REST authentication controller for API and mobile clients. Passwordless
+ * only — there is no password endpoint anywhere in this application.
+ *
+ * <p>Supported: MagicLink over e-mail, OAuth2/OIDC social login (Google,
+ * GitHub), and TOTP as a second factor.
+ *
+ * <p>The browser-facing equivalents are {@code MagicLinkWebController} and the
+ * OAuth2 configuration in {@code SecurityConfig}.
  */
 
 @RestController
@@ -113,20 +111,20 @@ public class AuthApiController {
     private record ExchangeRequest(String code) {}
 
     /**
-     * ❌ REMOVED: Password-based login endpoint
-     * 
-     * This application now uses PASSWORDLESS authentication only.
-     * Password-based /api/auth/login endpoint has been removed.
-     * 
-     * For API authentication, clients should:
-     * 1. Request a MagicLink (POST /api/auth/email-magiclink/send)
-     * 2. Open the emailed link in the browser; GET /api/auth/verify redirects
-     *    (302) to the app scheme with a one-time exchange code
-     * 3. Trade the code for a token pair via POST /api/auth/exchange
-     * 4. Refresh via POST /api/auth/refresh; revoke via POST /api/auth/logout
+     * There is no password login endpoint — authentication is passwordless
+     * throughout. An API client authenticates like this:
      *
-     * For MFA verification, use:
-     * - /api/auth/totp/verify for TOTP codes
+     * <ol>
+     *   <li>Request a MagicLink: {@code POST /api/auth/email-magiclink/send}</li>
+     *   <li>Open the e-mailed link; {@code GET /api/auth/verify} answers with a
+     *       302 to the app scheme carrying a one-time exchange code</li>
+     *   <li>Trade the code for a token pair: {@code POST /api/auth/exchange}</li>
+     *   <li>Refresh via {@code POST /api/auth/refresh}, revoke via
+     *       {@code POST /api/auth/logout}</li>
+     * </ol>
+     *
+     * <p>Where the account has 2FA enabled, {@code POST /api/auth/totp/verify}
+     * takes the TOTP code in place of the exchange step.
      */
 
     /**

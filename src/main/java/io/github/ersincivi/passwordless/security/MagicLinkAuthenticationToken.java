@@ -6,10 +6,10 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
 /**
- * An Authentication implementation that holds a Magic Link token.
- * 
- * LSP Compliance: This token follows the same pattern as UsernamePasswordAuthenticationToken,
- * making it interchangeable with other authentication tokens in the Spring Security framework.
+ * An Authentication implementation that holds a MagicLink token.
+ *
+ * <p>Modelled on {@code UsernamePasswordAuthenticationToken}, so it is
+ * interchangeable with the other authentication tokens in Spring Security.
  *
  * This token has two states:
  * 1. Unauthenticated (created by the Filter): Holds the token string from the URL

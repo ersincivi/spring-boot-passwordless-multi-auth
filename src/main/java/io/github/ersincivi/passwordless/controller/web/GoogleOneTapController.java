@@ -41,13 +41,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Google One Tap Login Controller
- * 
- * IMPORTANT: This controller creates a UNIFIED CustomUserDetails principal
- * to maintain consistency with the rest of the application's authentication system.
- * 
- * All authentication methods (Email OTP, OAuth2, OIDC, Google One Tap) must
- * return CustomUserDetails principal to ensure LSP compliance.
+ * Google One Tap login controller.
+ *
+ * <p>Like every other authentication method here — e-mail OTP, OAuth2, OIDC —
+ * it produces a {@code CustomUserDetails} principal, which is what keeps the
+ * flows interchangeable downstream.
  */
 
 @RestController

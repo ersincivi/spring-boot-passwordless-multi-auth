@@ -27,15 +27,12 @@ import io.github.ersincivi.passwordless.domain.CustomUserDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
 /**
- * Unified Authentication Success Handler
- * 
- * Handles authentication success for ALL login methods:
- * - Email OTP (Passwordless) / Magiclink
- * - Google OAuth2/OIDC
- * - GitHub OAuth2
- * 
- * IMPORTANT: All authentication methods now return CustomUserDetails principal.
- * No more type checking or casting needed - LSP compliance achieved.
+ * Unified authentication success handler, shared by every login method:
+ * e-mail OTP and MagicLink (passwordless), Google OAuth2/OIDC, and GitHub
+ * OAuth2.
+ *
+ * <p>Every one of them resolves to a {@code CustomUserDetails} principal, so
+ * this handler needs no type checks or casts.
  */
 
 @Component

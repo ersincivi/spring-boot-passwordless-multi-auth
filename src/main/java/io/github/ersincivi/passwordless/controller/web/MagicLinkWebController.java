@@ -19,20 +19,20 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Controller for MagicLink-based passwordless authentication (WEB)
- * 
- * LSP Compliance Restored:
- * This controller now ONLY handles the /email-magiclink/send endpoint (application logic).
- * The /auth/verify endpoint has been REMOVED and replaced with MagicLinkAuthenticationFilter.
- * 
- * Benefits:
- * - Separation of Concerns: Web layer handles HTTP requests, security layer handles authentication
- * - Unified Authentication Flow: MagicLink now uses the same AuthenticationManager as OAuth2/OIDC
- * - AuthenticationSuccessHandler Active: GeoIpService, AccountLockoutService, and audit logging now run
- * - Centralized 2FA: TotpFilter handles MFA for all authentication methods
- * - No Manual SecurityContext Manipulation: Spring Security manages authentication lifecycle
- * 
- * Replaces Email OTP with one-click login links
+ * Web controller for MagicLink passwordless authentication — one-click login
+ * links as an alternative to e-mail OTP.
+ *
+ * <p>This controller owns the application side only: issuing a link via
+ * {@code POST /email-magiclink/send}. Consuming the link is security-layer
+ * work and lives in {@code MagicLinkAuthenticationFilter}, which intercepts
+ * {@code GET /auth/verify} and delegates to {@code MagicLinkAuthenticationProvider}
+ * through the shared {@code AuthenticationManager}.
+ *
+ * <p>Routing verification through the filter chain is what keeps MagicLink on
+ * the same path as OAuth2 and OIDC: the success and failure handlers fire, so
+ * GeoIP anomaly detection, account lockout and audit logging run for every
+ * authentication method, 2FA is applied centrally by {@code TotpFilter}, and
+ * nothing here writes to the {@code SecurityContext} by hand.
  */
 @Controller
 @RequestMapping("/auth")
@@ -148,33 +148,4 @@ public class MagicLinkWebController {
         }
     }
 
-    /**
-     * ❌ DELETED: verifyMagicLink method
-     * 
-     * This method has been REMOVED to restore LSP compliance.
-     * 
-     * Reason for Deletion:
-     * - Violated Separation of Concerns (web layer doing security layer work)
-     * - Bypassed AuthenticationManager (manual authentication token creation)
-     * - Bypassed AuthenticationSuccessHandler (GeoIpService, audit logging didn't run)
-     * - Bypassed AuthenticationFailureHandler (no security audit on failures)
-     * - Duplicated 2FA logic (manual TOTP check instead of using TotpFilter)
-     * - Violated LSP (different authentication flow than OAuth2/OIDC)
-     * 
-     * Replaced By:
-     * - MagicLinkAuthenticationFilter (intercepts GET /auth/verify)
-     * - MagicLinkAuthenticationProvider (validates token, loads user)
-     * - MagicLinkAuthenticationToken (data carrier)
-     * 
-     * Benefits of New Approach:
-     * - ✅ LSP Restored: All auth flows (OAuth2, OIDC, MagicLink) converge at AuthenticationManager
-     * - ✅ AuthenticationSuccessHandler Active: GeoIpService runs automatically
-     * - ✅ AuthenticationFailureHandler Active: Security audit logging works
-     * - ✅ Centralized 2FA: TotpFilter handles MFA for all methods
-     * - ✅ Separation of Concerns: Security layer handles authentication
-     * - ✅ No Manual SecurityContext Manipulation: Spring Security manages lifecycle
-     * 
-     * The GET /auth/verify endpoint is now handled by MagicLinkAuthenticationFilter,
-     * which is registered in the Spring Security filter chain in SecurityConfig.
-     */
 }

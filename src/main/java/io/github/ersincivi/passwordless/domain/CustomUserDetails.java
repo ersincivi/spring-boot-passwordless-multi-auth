@@ -24,8 +24,9 @@ import java.util.Set;
  * - OAuth2User: For OAuth2 social login (Google, GitHub)
  * - OidcUser: For OpenID Connect login (Google)
  * 
- * This ensures Liskov Substitution Principle (LSP) compliance - all authentication
- * flows resolve to the same type, eliminating type checking in controllers.
+ * Because every authentication flow resolves to this one type, controllers
+ * never have to branch on which one produced the principal — the Liskov
+ * substitution principle applied to authentication.
  * 
  * Authentication Methods Supported:
  * 1. Email OTP (Passwordless)

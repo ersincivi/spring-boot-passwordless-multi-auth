@@ -14,24 +14,21 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * The "entry point" for Magic Link authentication.
- * 
- * LSP Compliance: This filter follows the same pattern as other authentication filters
- * (e.g., OAuth2LoginAuthenticationFilter). It intercepts a specific URL pattern,
- * creates an authentication token, and delegates to the AuthenticationManager.
+ * Entry point for MagicLink authentication.
  *
- * This filter intercepts the GET /auth/verify?token=... request,
- * creates an unauthenticated MagicLinkAuthenticationToken,
- * and passes it to the AuthenticationManager for processing.
+ * <p>Built on the same pattern as the other authentication filters, such as
+ * {@code OAuth2LoginAuthenticationFilter}: it intercepts
+ * {@code GET /auth/verify?token=...}, creates an unauthenticated
+ * {@code MagicLinkAuthenticationToken}, and hands it to the
+ * {@code AuthenticationManager}.
  *
- * Key Benefits:
- * - Integrates with Spring Security filter chain (LSP compliance)
- * - Triggers AuthenticationSuccessHandler on success (GeoIpService, audit logging)
- * - Triggers AuthenticationFailureHandler on failure (security audit)
- * - Allows TotpFilter to handle 2FA centrally
- * - No manual SecurityContext manipulation
- * 
- * This class is instantiated as a @Bean in SecurityConfig.
+ * <p>Sitting inside the Spring Security filter chain is what makes the
+ * success and failure handlers fire — GeoIP anomaly detection and audit
+ * logging on success, a security audit record on failure — lets
+ * {@code TotpFilter} apply 2FA centrally, and keeps the
+ * {@code SecurityContext} out of manual hands.
+ *
+ * <p>Registered as a bean in {@code SecurityConfig}.
  */
 @Component
 public class MagicLinkAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
@@ -55,10 +52,9 @@ public class MagicLinkAuthenticationFilter extends AbstractAuthenticationProcess
     }
 
     /**
-     * This method is called when the /auth/verify URL is hit.
-     * 
-     * LSP Compliance: This follows the same pattern as other authentication filters.
-     * We create an unauthenticated token and delegate to the AuthenticationManager.
+     * Called when the /auth/verify URL is hit: builds an unauthenticated
+     * token and delegates to the AuthenticationManager, the same way the
+     * other authentication filters do.
      * 
      * @param request  The HTTP request containing the token parameter
      * @param response The HTTP response
