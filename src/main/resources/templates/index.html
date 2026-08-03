@@ -411,16 +411,9 @@
 		     data-use_fedcm_for_prompt="true">
 		</div>
 		
-		<!-- Fallback: Manual Google Sign-In Button (if One Tap doesn't appear) -->
-		<div sec:authorize="isAnonymous()" id="g_id_signin" 
-		     data-type="standard"
-		     data-shape="rectangular"
-		     data-theme="outline"
-		     data-text="signin_with"
-		     data-size="large"
-		     data-logo_alignment="left"
-		     style="display: none; margin: 20px auto; max-width: 400px;">
-		</div>
+		<!-- No Google button here on purpose: the landing page only offers the
+		     One Tap prompt (top right, subject to Google's cooldown after a
+		     dismissal). The classic "Sign in with Google" flow lives on /login. -->
 		
 		<div class="actions">
 			<th:block sec:authorize="isAnonymous()">
@@ -434,12 +427,15 @@
 			</th:block>
 
 			<th:block sec:authorize="isAuthenticated()">
+				<a class="btn btn-outline" th:href="@{/settings}" th:text="#{nav.settings}">
+					<span th:text="#{nav.settings}">Settings</span>
+				</a>
+
 				<form th:action="@{/logout}" method="post" style="display: contents;">
 					<button type="submit" class="btn btn-primary">
 						<span th:text="#{nav.logout}">Sign Out</span>
 					</button>
 				</form>
-				<!-- <span sec:authentication="name" class="user-name">Username</span> -->
 			</th:block>
 		</div>
 	</div>
@@ -471,18 +467,29 @@
 				})
 			})
 			.then(response => {
+				// A non-JSON answer (e.g. an HTML page after a redirect) must
+				// not be parsed as JSON - follow the redirect instead.
+				const contentType = response.headers.get('content-type') || '';
+				if (response.redirected && !contentType.includes('application/json')) {
+					window.location.href = response.url;
+					return null;
+				}
+
 				if (response.ok) {
 					return response.json();
 				}
 
 				// Handle error responses
-				return response.json().then(errorData => {
-					const errorMessage = errorData.message || 'Authentication failed';
-					throw new Error(errorMessage);
-				});
+				if (contentType.includes('application/json')) {
+					return response.json().then(errorData => {
+						throw new Error(errorData.message || 'Authentication failed');
+					});
+				}
+				throw new Error('Authentication failed');
 			})
 			.then(data => {
-				// Redirect to home page or dashboard
+				if (!data) return; // already navigating
+				// Redirect to the TOTP challenge or the home page
 				window.location.href = data.redirectUrl || '/';
 			})
 			.catch(error => {
@@ -491,65 +498,13 @@
 				alert(error.message);
 			});
 		}
-		
-		// Initialize Google One Tap and show fallback button if needed
-		document.addEventListener('DOMContentLoaded', function() {
-			// Wait for Google Identity Services to load
-			if (window.google && window.google.accounts) {
-				// Initialize the Google Sign-In button as fallback
-				try {
-					google.accounts.id.initialize({
-						// The client ID is rendered into the data-client_id attribute
-						// above from the GOOGLE_CLIENT_ID environment variable -
-						// set it in .env, no template editing needed.
-						client_id: document.getElementById('g_id_onload').dataset.client_id,
-						callback: handleGoogleOneTapResponse,
-						auto_select: false,
-						cancel_on_tap_outside: false
-					});
 
-					google.accounts.id.prompt((notification) => {
-						if (notification.getSkippedReason() === 'tap_outside') {
-							google.accounts.id.prompt();
-						}
-					});
-					
-					// Render the sign-in button
-					const buttonDiv = document.getElementById('g_id_signin');
-					if (buttonDiv) {
-						google.accounts.id.renderButton(
-							buttonDiv,
-							{
-								theme: 'outline',
-								size: 'large',
-								type: 'standard',
-								text: 'signin_with',
-								shape: 'rectangular',
-								logo_alignment: 'left'
-							}
-						);
-					}
-					
-					// Try to show One Tap prompt
-					google.accounts.id.prompt((notification) => {
-						if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-							// One Tap not shown - display the fallback button
-							console.log('Google One Tap not displayed, showing fallback button');
-							if (buttonDiv) {
-								buttonDiv.style.display = 'block';
-							}
-						}
-					});
-				} catch (error) {
-					console.warn('Google One Tap initialization error:', error);
-					// Show fallback button on error
-					const buttonDiv = document.getElementById('g_id_signin');
-					if (buttonDiv) {
-						buttonDiv.style.display = 'block';
-					}
-				}
-			}
-		});
+		// NOTE: no manual google.accounts.id.initialize()/prompt() here.
+		// The GIS library runs in declarative mode: the #g_id_onload div
+		// configures and triggers One Tap on its own. A second, imperative
+		// initialization used to race the declarative one (two concurrent
+		// prompt() calls under FedCM lock the credential UI). The classic
+		// "Sign in with Google" button lives on /login instead.
 	</script>
 	
 	<!-- Common page functionality - for all users -->

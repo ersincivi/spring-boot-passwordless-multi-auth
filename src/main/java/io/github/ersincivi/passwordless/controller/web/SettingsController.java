@@ -54,14 +54,18 @@ public class SettingsController {
         try {
 
             logger.info("Check user: {}", principal.getName());
-            logger.info("Check CustomUserDetails, getUserName: {}, getUsername: {}, getEmail: {}, getLastLoginIp: {}, getMfaEnabled: {}", customUser.getUserName(), customUser.getUsername(), customUser.getEmail(), customUser.getUser().getLastLoginIp(), customUser.getUser().getMfaEnabled());
 
-            // User user = getCurrentUser(authentication);
-            model.addAttribute("user", customUser.getUser());
-            
+            // The principal carries the User loaded at login time; MFA may have
+            // been toggled since then, so always re-read the current state from
+            // the database (a stale copy here both mis-renders the status badge
+            // and regenerates setup credentials after enrollment).
+            User user = userService.getFullUserByUsername(customUser.getUsername())
+                    .orElse(customUser.getUser());
+            model.addAttribute("user", user);
+
             // If TOTP is not enabled, create setup credentials
-            if (!Boolean.TRUE.equals(customUser.getUser().getMfaEnabled())) {
-                logger.info("Creating TOTP credentials for user: {} (TOTP enabled: {})", customUser.getUsername(), customUser.getUser().getMfaEnabled());
+            if (!Boolean.TRUE.equals(user.getMfaEnabled())) {
+                logger.info("Creating TOTP credentials for user: {} (TOTP enabled: {})", customUser.getUsername(), user.getMfaEnabled());
 
                 try {
                     TotpService.TotpSetupResult setupResult = totpService.createCredentials(customUser.getUsername());
@@ -77,7 +81,7 @@ public class SettingsController {
                     if (setupResult.isSuccess()) {
                         model.addAttribute("provisionKey", setupResult.getSecret());
                         model.addAttribute("totpUri", setupResult.getQrCodeUrl());
-                        logger.info("TOTP qrcode url: {}", setupResult.getQrCodeUrl());
+                        // Never log the otpauth:// URL - it embeds the TOTP secret
                         logger.info("Successfully added TOTP setup attributes to model for user: {}", customUser.getUsername());
                     } else {
                         logger.error("Failed to create TOTP credentials for user: {}, error: {}", customUser.getUsername(), setupResult.getError());
@@ -103,7 +107,7 @@ public class SettingsController {
 
             Map<String, Object> details = new HashMap<>();
             details.put("username", customUser.getUsername());
-            details.put("mfaEnabled", customUser.getUser().getMfaEnabled());
+            details.put("mfaEnabled", user.getMfaEnabled());
             details.put("userAgent", userAgent);
 
             securityAuditService.logAdminAction(

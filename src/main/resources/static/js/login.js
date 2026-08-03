@@ -196,13 +196,30 @@ function initializeEmailMagicLinkFlow() {
                     body: JSON.stringify({ "email": email })
                 });
                 
+                // If the server answered with a redirect to another page
+                // (e.g. a pending TOTP challenge), follow it instead of
+                // trying to parse the resulting HTML as JSON.
+                const responseType = response.headers.get('content-type') || '';
+                if (response.redirected && !responseType.includes('application/json')) {
+                    window.location.href = response.url;
+                    return;
+                }
+
                 if (!response.ok) {
-                    // Handle error responses
-                    const errorData = await response.json();
-                    const errorMessage = errorData.message || 'Failed to send login link';
+                    // Handle error responses. Non-JSON bodies (e.g. the HTML
+                    // error page served for an expired CSRF token after an
+                    // app restart) must not crash the handler.
+                    let errorMessage = 'Failed to send login link';
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } else if (response.status === 403) {
+                        errorMessage = 'Your session expired - please reload the page and try again';
+                    }
                     throw new Error(errorMessage);
                 }
-                
+
                 // Success - parse response
                 const data = await response.json();
                 userEmail = email;

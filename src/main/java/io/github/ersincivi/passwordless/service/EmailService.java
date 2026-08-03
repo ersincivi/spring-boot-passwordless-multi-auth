@@ -100,7 +100,7 @@ public class EmailService {
         String regards = messageSource.getMessage("email.regards", null, "Best regards,", locale);
         String team = messageSource.getMessage("email.security.team", null, "The Passwordless Multi-Auth Team", locale);
         String automated = messageSource.getMessage("email.automated.message", null, "This is an automated message. Please do not reply to this email.", locale);
-        String copyright = messageSource.getMessage("email.copyright", null, "© 2024 Passwordless Multi-Auth. All rights reserved.", locale);
+        String copyright = messageSource.getMessage("email.copyright", null, "© Passwordless Multi-Auth. All rights reserved.", locale);
 
         return String.format("""
             <!DOCTYPE html>
@@ -226,7 +226,7 @@ public class EmailService {
         String regards = messageSource.getMessage("email.regards", null, "Best regards,", locale);
         String team = messageSource.getMessage("email.security.team", null, "The Passwordless Multi-Auth Team", locale);
         String automated = messageSource.getMessage("email.automated.message", null, "This is an automated message. Please do not reply to this email.", locale);
-        String copyright = messageSource.getMessage("email.copyright", null, "© 2024 Passwordless Multi-Auth. All rights reserved.", locale);
+        String copyright = messageSource.getMessage("email.copyright", null, "© Passwordless Multi-Auth. All rights reserved.", locale);
 
         return String.format("""
             <!DOCTYPE html>
@@ -348,7 +348,7 @@ public class EmailService {
         String regards = messageSource.getMessage("email.regards", null, "Best regards,", locale);
         String team = messageSource.getMessage("email.security.team", null, "The Passwordless Multi-Auth Team", locale);
         String automated = messageSource.getMessage("email.automated.message", null, "This is an automated message. Please do not reply to this email.", locale);
-        String copyright = messageSource.getMessage("email.copyright", null, "© 2024 Passwordless Multi-Auth. All rights reserved.", locale);
+        String copyright = messageSource.getMessage("email.copyright", null, "© Passwordless Multi-Auth. All rights reserved.", locale);
 
         return String.format("""
             <!DOCTYPE html>
@@ -469,7 +469,7 @@ public class EmailService {
         String regards = messageSource.getMessage("email.regards", null, "Best regards,", locale);
         String team = messageSource.getMessage("email.security.team", null, "The Passwordless Multi-Auth Team", locale);
         String automated = messageSource.getMessage("email.automated.message", null, "This is an automated message. Please do not reply to this email.", locale);
-        String copyright = messageSource.getMessage("email.copyright", null, "© 2024 Passwordless Multi-Auth. All rights reserved.", locale);
+        String copyright = messageSource.getMessage("email.copyright", null, "© Passwordless Multi-Auth. All rights reserved.", locale);
 
         return String.format("""
             <!DOCTYPE html>
@@ -593,7 +593,7 @@ public class EmailService {
         String staySecure = messageSource.getMessage("email.stay.secure", null, "Stay secure,", locale);
         String securityTeam = messageSource.getMessage("email.security.team", null, "The Passwordless Multi-Auth Security Team", locale);
         String automated = messageSource.getMessage("email.automated.message", null, "This is an automated security message. Please do not reply to this email.", locale);
-        String copyright = messageSource.getMessage("email.copyright", null, "© 2024 Passwordless Multi-Auth. All rights reserved.", locale);
+        String copyright = messageSource.getMessage("email.copyright", null, "© Passwordless Multi-Auth. All rights reserved.", locale);
         String needHelp = messageSource.getMessage("email.geo.need.help", null, "If you need assistance, contact our security team immediately.", locale);
 
         return String.format("""
@@ -742,14 +742,14 @@ public class EmailService {
         String noButton = messageSource.getMessage("email.geo.alert.no", null, "No, it's not me", locale);
         String securityRecommendations = messageSource.getMessage("email.geo.alert.recommendations", null, "Security Recommendations:", locale);
         String enableMfa = messageSource.getMessage("email.geo.alert.enable.mfa", null, "Enable two-factor authentication (2FA) for added security", locale);
-        String updatePassword = messageSource.getMessage("email.geo.alert.update.password", null, "Update your password regularly", locale);
+        String updatePassword = messageSource.getMessage("email.geo.alert.update.password", null, "Keep your authenticator app and backup codes safe", locale);
         String reviewSessions = messageSource.getMessage("email.geo.alert.review.sessions", null, "Review active sessions in your account settings", locale);
         String contactSupport = messageSource.getMessage("email.geo.alert.contact.support", null, "Contact support if you notice any suspicious activity", locale);
         String ifNotYou = messageSource.getMessage("email.geo.alert.if.not.you", null, "If you don't recognize this activity, click 'No' above to immediately terminate the session and secure your account.", locale);
         String regards = messageSource.getMessage("email.regards", null, "Best regards,", locale);
         String securityTeam = messageSource.getMessage("email.security.team", null, "The Passwordless Multi-Auth Security Team", locale);
         String automated = messageSource.getMessage("email.automated.message", null, "This is an automated security message. Please do not reply to this email.", locale);
-        String copyright = messageSource.getMessage("email.copyright", null, "© 2024 Passwordless Multi-Auth. All rights reserved.", locale);
+        String copyright = messageSource.getMessage("email.copyright", null, "© Passwordless Multi-Auth. All rights reserved.", locale);
 
         String confirmUrl = "http://localhost:8585/geo-alert/confirm?token=" + token;
         String denyUrl = "http://localhost:8585/geo-alert/deny?token=" + token;

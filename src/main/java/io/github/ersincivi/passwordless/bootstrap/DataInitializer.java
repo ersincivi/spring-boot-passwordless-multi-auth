@@ -36,11 +36,17 @@ public class DataInitializer implements ApplicationRunner {
 		// Admin User: username=admin, email=admin@example.com, role=ADMIN
 		// Regular User: username=user, email=user@example.com, role=USER
 
+		log.info("Setting up demo users (dev profile)...");
+
 		Role adminRole = createOrGetRole(Role.Code.ADMIN, "Administrator");
 		Role userRole = createOrGetRole(Role.Code.USER, "User");
 
 		createOrGetUser("Administrator", "admin", "admin@example.com", adminRole, true);
 		createOrGetUser("User", "user", "user@example.com", userRole, false);
+
+		log.info("First-run setup complete. Demo accounts: admin@example.com (ADMIN) and "
+				+ "user@example.com (USER) - no passwords, log in via magic link or OTP "
+				+ "(mails land in Mailpit at http://localhost:8025).");
 	}
 
 	private Role createOrGetRole(Role.Code code, String name) {

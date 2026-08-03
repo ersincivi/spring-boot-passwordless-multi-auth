@@ -30,8 +30,13 @@ public class TotpFilter extends StaticResourceIgnoringFilter {
             throws ServletException, IOException {
         String path = request.getRequestURI();
 
-        // Exclude public paths, static resources, and TOTP-related endpoints
-        if (path.startsWith("/api/") || path.startsWith("/login") || path.startsWith("/totp") ||
+        // Exclude public paths, static resources, and TOTP-related endpoints.
+        // /auth/** is the login machinery itself (magic link / OTP send+verify):
+        // while TOTP is still pending the user may legitimately restart the
+        // login, and redirecting those XHR calls to /totp breaks the login
+        // page's JSON handling.
+        if (path.startsWith("/api/") || path.startsWith("/auth/") || path.startsWith("/login") ||
+                path.startsWith("/totp") ||
                 path.startsWith("/geo") || path.startsWith("/error") || path.startsWith("/swagger") ||
                 path.startsWith("/v3") || path.startsWith("/css/") || path.startsWith("/js/") ||
                 path.startsWith("/images/")) {

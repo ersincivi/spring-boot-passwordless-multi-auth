@@ -5,8 +5,11 @@ import io.github.ersincivi.passwordless.domain.Role;
 import io.github.ersincivi.passwordless.domain.User;
 import io.github.ersincivi.passwordless.repository.RoleRepository;
 import io.github.ersincivi.passwordless.repository.UserRepository;
+import io.github.ersincivi.passwordless.security.PreMfaAuthenticationToken;
 import io.github.ersincivi.passwordless.service.ApiI18nMessageService;
 import io.github.ersincivi.passwordless.service.CustomOidcUserService;
+import io.github.ersincivi.passwordless.service.GeoAlertService;
+import io.github.ersincivi.passwordless.service.GeoIpService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -60,15 +63,21 @@ public class GoogleOneTapController {
     private final RoleRepository roleRepository;
     private final CustomOidcUserService customOidcUserService;
     private final ApiI18nMessageService apiMessageService;
+    private final GeoIpService geoIpService;
+    private final GeoAlertService geoAlertService;
 
-    public GoogleOneTapController(UserRepository userRepository, 
+    public GoogleOneTapController(UserRepository userRepository,
                                    RoleRepository roleRepository,
                                    CustomOidcUserService customOidcUserService,
-                                   ApiI18nMessageService apiMessageService) {
+                                   ApiI18nMessageService apiMessageService,
+                                   GeoIpService geoIpService,
+                                   GeoAlertService geoAlertService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.customOidcUserService = customOidcUserService;
         this.apiMessageService = apiMessageService;
+        this.geoIpService = geoIpService;
+        this.geoAlertService = geoAlertService;
     }
 
     /**
@@ -200,6 +209,10 @@ public class GoogleOneTapController {
                 user.setProfileImage(pictureUrl);
             }
 
+            // Capture the previous login IP BEFORE overwriting it - the
+            // geo-change check below compares against it.
+            final String previousLoginIp = user.getLastLoginIp();
+
             // Update login tracking
             user.setLastLoginIp(request.getRemoteAddr());
             user.setLastLoginAt(Instant.now());
@@ -249,28 +262,57 @@ public class GoogleOneTapController {
             
             log.debug("Google One Tap: Created CustomUserDetails principal for {}", email);
 
-            // Create authentication with CustomUserDetails as principal
-            UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
-            
-            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
-            securityContext.setAuthentication(authentication);
-            SecurityContextHolder.setContext(securityContext);
+            // T3.1 parity with every other login method: if the account has
+            // TOTP enabled, One Tap must NOT complete authentication - it only
+            // establishes a restricted pre-MFA context and sends the browser
+            // to /totp for the second factor (TotpWebController upgrades it).
+            boolean totpRequired = Boolean.TRUE.equals(savedUser.getMfaEnabled());
 
-            // Save security context to session
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             HttpSession session = request.getSession(true);
+
+            if (totpRequired) {
+                session.setAttribute("PENDING_USERNAME", savedUser.getUsername());
+                session.setAttribute("PENDING_AUTH_TIME", System.currentTimeMillis());
+                securityContext.setAuthentication(new PreMfaAuthenticationToken(userDetails));
+                log.info("Google One Tap: TOTP required for user {}, restricted pre-MFA context set", email);
+            } else {
+                securityContext.setAuthentication(
+                        new UsernamePasswordAuthenticationToken(userDetails, null, authorities));
+                log.info("Google One Tap: Successfully authenticated user {} with CustomUserDetails principal", email);
+            }
+
+            SecurityContextHolder.setContext(securityContext);
             session.setAttribute(
                     HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                     securityContext);
 
-            log.info("Google One Tap: Successfully authenticated user {} with CustomUserDetails principal", email);
+            // Geo-change parity with AuthenticationSuccessHandler: One Tap
+            // bypasses that handler, so run the same country comparison here.
+            if (geoIpService.isAvailable() && savedUser.getEmail() != null) {
+                String currentCountry = geoIpService.lookupCountryIso(request.getRemoteAddr()).orElse(null);
+                String previousCountry = previousLoginIp != null
+                        ? geoIpService.lookupCountryIso(previousLoginIp).orElse(null) : null;
+                if (currentCountry != null && previousCountry != null && !currentCountry.equals(previousCountry)) {
+                    log.info("Google One Tap: Country changed from {} to {} for user {}, sending alert...",
+                            previousCountry, currentCountry, email);
+                    geoAlertService.sendGeoAlert(
+                            savedUser.getEmail(),
+                            savedUser.getUsername(),
+                            session.getId(),
+                            currentCountry,
+                            previousCountry,
+                            request.getRemoteAddr(),
+                            apiMessageService.getCurrentLocale(request));
+                }
+            }
 
             // Prepare response
             return ResponseEntity.ok(
                 apiMessageService.createSuccessResponse(
                     "login.google.success",
                     Map.of(
-                        "redirectUrl", "/",
+                        "redirectUrl", totpRequired ? "/totp" : "/",
                         "user", Map.of(
                             "email", email,
                             "name", name != null ? name : email

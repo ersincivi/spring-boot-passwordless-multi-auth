@@ -10,6 +10,8 @@
 <p align="center">
   <img alt="Java 25" src="https://img.shields.io/badge/Java-25-2ea44f?logo=openjdk&logoColor=white">
   <img alt="Spring Boot 4.0" src="https://img.shields.io/badge/Spring%20Boot-4.0-6DB33F?logo=springboot&logoColor=white">
+  <img alt="2FA TOTP" src="https://img.shields.io/badge/2FA-TOTP%20%2B%20backup%20codes-2ea44f?logo=googleauthenticator&logoColor=white">
+  <img alt="GeoIP alerts" src="https://img.shields.io/badge/GeoIP-location%20alerts-2ea44f">
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-2f363d?logo=postgresql&logoColor=white">
   <img alt="Redis" src="https://img.shields.io/badge/Redis-2f363d?logo=redis&logoColor=white">
   <img alt="License MIT" src="https://img.shields.io/badge/License-MIT-2ea44f">
@@ -28,6 +30,8 @@
   <a href="#-first-run">First run</a> ·
   <a href="#-logging-in-web">Web login</a> ·
   <a href="#-logging-in-api">API login</a> ·
+  <a href="#-two-factor-login-totp">2FA</a> ·
+  <a href="#-location-change-alerts-geoip">Geo alerts</a> ·
   <a href="#-project-structure">Structure</a> ·
   <a href="#-monitoring">Monitoring</a> ·
   <a href="#-documentation">Docs</a> ·
@@ -162,6 +166,64 @@ Active JWTs are tracked in Redis (`jti` allow-list), so `POST
 "valid until expiry". If the account has TOTP enabled, step 3 redirects with
 `status=totp_required` and `POST /api/auth/totp/verify` takes the 6-digit
 code instead.
+
+## 🔐 Two-factor login (TOTP)
+
+Any account can add a TOTP second factor (Google Authenticator, Aegis,
+1Password, …) on top of the passwordless flows:
+
+1. **Enroll** — log in, open **Settings** (<http://localhost:8585/settings>),
+   scan the QR code and confirm with a 6-digit code. Backup codes are
+   generated alongside; store them — each works once if the authenticator
+   is lost.
+2. **Web login** — after the magic link or OTP is accepted, the session is
+   only *half* authenticated: a restricted pre-MFA context is stored and
+   every protected page redirects to the `/totp` challenge until the code
+   (or a backup code) is verified. Only then is the session upgraded to a
+   full authentication.
+3. **API login** — step 3 of the curl flow changes shape: `/api/auth/verify`
+   redirects with `status=totp_required&username=...` instead of a one-time
+   code, and the client trades the 6-digit code for the token pair:
+
+   ```bash
+   curl -X POST http://localhost:8585/api/auth/totp/verify \
+     -H "Content-Type: application/json" \
+     -d '{"username": "user", "code": "123456"}'
+   # → { "data": { "token": "eyJ...", "refreshToken": "..." } }
+   ```
+
+4. **Google One Tap** honours the same rule: with TOTP enabled it never
+   completes authentication directly — the response carries
+   `redirectUrl: "/totp"` and the browser lands on the challenge first.
+
+Wrong codes count towards the same lockout counters as every other login
+surface, so brute-forcing the 6 digits trips the account lock, not just
+the rate limiter.
+
+## 🌍 Location-change alerts (GeoIP)
+
+Every successful login compares the country of the current IP against the
+country of the previous one (MaxMind GeoLite2, fetched automatically into
+`./data` on first start). On a mismatch the user gets a security mail —
+delayed a few seconds via the Redis e-mail queue — with two links:
+
+- ✅ **"Yes, it was me"** — acknowledges the new location.
+- ❌ **"No, it's not me"** — immediately invalidates the target session
+  server-side (Redis), no matter where that session is logged in.
+
+Try it locally without leaving your desk — plant a German IP as the
+"previous login", then log in again:
+
+```bash
+docker exec passwordless_postgres psql -U passwordless -d passwordlessdb \
+  -c "UPDATE users SET last_login_ip='217.247.0.1' WHERE username='user';"
+```
+
+Log in as `user@example.com`, and a few seconds later
+**"Security Alert: Login from New Location"** (DE → US) appears in Mailpit —
+click *No, it's not me* and watch the session die. Local addresses resolve
+to `US` by design so the demo works offline; TOTP does not suppress the
+check — the two layers are independent.
 
 ## 🏗 Project structure
 

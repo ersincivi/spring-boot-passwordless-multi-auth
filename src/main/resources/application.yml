@@ -87,8 +87,14 @@ app:
       delayed-poll-ms: 1000
       geo-alert-delay-ms: 5000  # 5 seconds delay for GEO_ALERT emails
   geoip:
-    database: classpath:static/GeoLite2-City.mmdb
-    enabled: true
+    # GeoLite2 is not bundled (MaxMind license). On first run the app fetches
+    # a copy into ./data automatically (auto-download); alternatively point
+    # GEOIP_DATABASE_PATH at your own downloaded GeoLite2-City.mmdb.
+    database: ${GEOIP_DATABASE_PATH:classpath:static/GeoLite2-City.mmdb}
+    enabled: ${GEOIP_ENABLED:true}
+    auto-download: ${GEOIP_AUTO_DOWNLOAD:true}
+    download-url: ${GEOIP_DOWNLOAD_URL:https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb}
+    download-path: ./data/GeoLite2-City.mmdb
 
 # Common management/actuator configuration
 management:
@@ -532,6 +538,8 @@ app:
   geoip:
     database: ${GEOIP_DATABASE_PATH:classpath:static/GeoLite2-City.mmdb}
     enabled: ${GEOIP_ENABLED:true}
+    # No silent downloads in production - provide the database explicitly
+    auto-download: ${GEOIP_AUTO_DOWNLOAD:false}
 
 # Production configuration for management
 management:
