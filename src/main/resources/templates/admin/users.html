@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="_csrf" th:if="${_csrf}" th:content="${_csrf.token}"/>
+	<meta name="robots" content="noindex, nofollow">
+
+	<link rel="icon" type="image/png" href="/images/favicon-96x96.png" sizes="96x96" />
+	<link rel="icon" type="image/svg+xml" href="/images/favicon.svg" />
+	<link rel="shortcut icon" href="/images/favicon.ico" />
+
+	<title>User Management · Admin</title>
+
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background: linear-gradient(135deg, #6C63FF 0%, #4A44D6 100%);
+			min-height: 100vh;
+			padding: 40px 20px;
+		}
+
+		.page { max-width: 1080px; margin: 0 auto; }
+
+		.topbar {
+			display: flex; align-items: center; justify-content: space-between;
+			margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+		}
+		.topbar h1 { color: #fff; font-size: 1.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+		.topbar .back {
+			display: inline-flex; align-items: center; gap: 8px;
+			color: rgba(255,255,255,0.9); text-decoration: none; font-weight: 600;
+			padding: 10px 16px; border: 2px solid rgba(255,255,255,0.35);
+			border-radius: 12px; transition: all .25s ease;
+		}
+		.topbar .back:hover { background: rgba(255,255,255,0.15); }
+
+		.card {
+			background: rgba(255,255,255,0.96);
+			border-radius: 20px;
+			box-shadow: 0 20px 40px rgba(0,0,0,0.12);
+			padding: 26px;
+			margin-bottom: 24px;
+		}
+		.card h2 { font-size: 1.1rem; color: #333; margin-bottom: 16px; }
+
+		/* Create form */
+		.create-form {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+			gap: 12px;
+			align-items: end;
+		}
+		.field label {
+			display: block; font-size: 0.75rem; font-weight: 700;
+			text-transform: uppercase; letter-spacing: .5px; color: #888;
+			margin-bottom: 6px;
+		}
+		.field input {
+			width: 100%;
+			padding: 11px 14px;
+			border: 2px solid #ddd; border-radius: 10px;
+			font-size: 0.95rem;
+		}
+		.field input:focus { outline: none; border-color: #6C63FF; }
+
+		.role-picks { display: flex; gap: 10px; padding: 11px 0; }
+		.role-picks label {
+			display: inline-flex; align-items: center; gap: 6px;
+			font-size: 0.85rem; font-weight: 600; color: #444; cursor: pointer;
+		}
+
+		.btn {
+			padding: 11px 20px; border-radius: 10px;
+			font-weight: 600; font-size: 0.9rem;
+			border: none; cursor: pointer; transition: all .2s ease;
+			text-decoration: none; display: inline-block; text-align: center;
+		}
+		.btn-primary { background: #4A44D6; color: #fff; }
+		.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(74,68,214,0.4); }
+		.btn-sm {
+			padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;
+			background: #f1f0fb; color: #4A44D6;
+		}
+		.btn-sm:hover { background: #e4e2f7; }
+		.btn-sm.danger { background: #fdeef0; color: #c22f42; }
+		.btn-sm.danger:hover { background: #fadde1; }
+
+		/* Table */
+		.table-wrap { overflow-x: auto; }
+		table { width: 100%; border-collapse: collapse; }
+		th {
+			text-align: left; font-size: 0.72rem; text-transform: uppercase;
+			letter-spacing: .6px; color: #999; padding: 10px 12px;
+			border-bottom: 2px solid #eee;
+		}
+		td { padding: 12px; border-bottom: 1px solid #f2f2f2; vertical-align: middle; font-size: 0.92rem; }
+		tr:hover td { background: #fafaff; }
+
+		.u-name { font-weight: 700; color: #333; }
+		.u-email { color: #888; font-size: 0.82rem; }
+
+		.tag {
+			display: inline-block; padding: 3px 10px; border-radius: 999px;
+			font-size: 0.72rem; font-weight: 700; letter-spacing: .4px;
+			margin-right: 4px;
+		}
+		.tag.role   { background: rgba(108,99,255,0.12); color: #4A44D6; }
+		.tag.on     { background: rgba(46,164,79,0.13);  color: #2ea44f; }
+		.tag.off    { background: rgba(220,53,69,0.11);  color: #dc3545; }
+		.tag.mfa    { background: rgba(255,153,0,0.14);  color: #a86400; }
+		.tag.oauth  { background: #eef4fd; color: #3572b0; }
+
+		.row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+		/* Toast alerts: solid surface so they stay readable on any backdrop */
+		.alert {
+			display: none;
+			position: fixed;
+			top: 24px; left: 50%;
+			transform: translateX(-50%);
+			z-index: 1000;
+			max-width: min(560px, calc(100vw - 40px));
+			background: #fff;
+			color: #333;
+			padding: 14px 20px 14px 14px;
+			border-radius: 14px;
+			border-left: 5px solid;
+			box-shadow: 0 14px 40px rgba(20, 16, 80, 0.35);
+			font-weight: 600;
+			font-size: 0.92rem;
+			align-items: center;
+			gap: 12px;
+			animation: toastIn .3s ease;
+		}
+		.alert.show { display: flex; }
+		.alert::before {
+			font-size: 1rem; font-weight: 800;
+			width: 26px; height: 26px; border-radius: 50%;
+			display: inline-flex; align-items: center; justify-content: center;
+			flex-shrink: 0; color: #fff;
+		}
+		.alert.success { border-left-color: #2ea44f; }
+		.alert.success::before { content: '✓'; background: #2ea44f; }
+		.alert.error { border-left-color: #dc3545; }
+		.alert.error::before { content: '✕'; background: #dc3545; }
+		@keyframes toastIn {
+			from { opacity: 0; transform: translate(-50%, -12px); }
+			to   { opacity: 1; transform: translate(-50%, 0); }
+		}
+
+		.muted { color: #999; font-size: 0.8rem; }
+	</style>
+</head>
+<body>
+	<div class="page">
+		<div class="topbar">
+			<a class="back" href="/admin">← Admin Panel</a>
+			<h1>👥 User Management</h1>
+			<a class="back" href="/">Home</a>
+		</div>
+
+		<div class="alert success" id="okAlert"></div>
+		<div class="alert error" id="errAlert"></div>
+
+		<!-- Create -->
+		<div class="card">
+			<h2>➕ Create user <span class="muted">— passwordless: the account signs in
+				via magic link / OTP sent to its e-mail</span></h2>
+			<form class="create-form" id="createForm">
+				<div class="field">
+					<label for="cName">Display name</label>
+					<input id="cName" type="text" placeholder="Jane Doe">
+				</div>
+				<div class="field">
+					<label for="cUsername">Username</label>
+					<input id="cUsername" type="text" required placeholder="jane">
+				</div>
+				<div class="field">
+					<label for="cEmail">E-mail</label>
+					<input id="cEmail" type="email" required placeholder="jane@example.com">
+				</div>
+				<div class="field">
+					<label>Roles</label>
+					<div class="role-picks">
+						<label><input type="checkbox" name="cRole" value="USER" checked> USER</label>
+						<label><input type="checkbox" name="cRole" value="ADMIN"> ADMIN</label>
+					</div>
+				</div>
+				<button type="submit" class="btn btn-primary">Create</button>
+			</form>
+		</div>
+
+		<!-- List -->
+		<div class="card">
+			<h2>📋 Users <span class="muted" id="countNote"></span></h2>
+			<div class="table-wrap">
+				<table>
+					<thead>
+						<tr>
+							<th>User</th>
+							<th>Roles</th>
+							<th>Status</th>
+							<th>Last login</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody id="userRows">
+						<tr><td colspan="5" class="muted">Loading…</td></tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	<script th:nonce="${nonce}" th:inline="javascript">
+		const csrf = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+		const ME = /*[[${#authentication.name}]]*/ '';
+
+		function alertBox(ok, msg) {
+			const el = document.getElementById(ok ? 'okAlert' : 'errAlert');
+			const other = document.getElementById(ok ? 'errAlert' : 'okAlert');
+			other.classList.remove('show');
+			el.textContent = msg;
+			el.classList.add('show');
+			clearTimeout(el._hideTimer);
+			el._hideTimer = setTimeout(() => el.classList.remove('show'), 5000);
+		}
+
+		async function api(path, opts = {}) {
+			const res = await fetch('/admin/api/users' + path, {
+				headers: {
+					'Content-Type': 'application/json',
+					'X-XSRF-TOKEN': csrf
+				},
+				credentials: 'same-origin',
+				...opts
+			});
+			const ct = res.headers.get('content-type') || '';
+			const data = ct.includes('application/json') ? await res.json() : null;
+			if (!res.ok) {
+				throw new Error((data && data.message) || ('Request failed (' + res.status + ')'));
+			}
+			return data;
+		}
+
+		function esc(s) {
+			const d = document.createElement('div');
+			d.textContent = s == null ? '' : String(s);
+			return d.innerHTML;
+		}
+
+		function fmtDate(iso) {
+			if (!iso) return '—';
+			const d = new Date(iso);
+			return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+		}
+
+		function render(users) {
+			const tbody = document.getElementById('userRows');
+			document.getElementById('countNote').textContent = '— ' + users.length + ' accounts';
+			tbody.innerHTML = '';
+			for (const u of users) {
+				const tr = document.createElement('tr');
+				const isMe = u.username === ME;
+				tr.innerHTML = `
+					<td>
+						<div class="u-name">${esc(u.name || u.username)}${isMe ? ' <span class="muted">(you)</span>' : ''}</div>
+						<div class="u-email">${esc(u.username)} · ${esc(u.email)}</div>
+					</td>
+					<td>${(u.roles || []).map(r => '<span class="tag role">' + esc(r) + '</span>').join('')}
+					    ${u.oauthProvider ? '<span class="tag oauth">' + esc(u.oauthProvider) + '</span>' : ''}</td>
+					<td>
+						<span class="tag ${u.enabled ? 'on' : 'off'}">${u.enabled ? 'enabled' : 'disabled'}</span>
+						${u.mfaEnabled ? '<span class="tag on">2FA</span>' : ''}
+					</td>
+					<td>
+						<div>${fmtDate(u.lastLoginAt)}</div>
+						<div class="muted">${esc(u.lastLoginIp || '')}</div>
+					</td>
+					<td class="row-actions"></td>`;
+
+				const actions = tr.querySelector('.row-actions');
+
+				const roleBtn = mkBtn('Roles', '', () => editRoles(u));
+				actions.appendChild(roleBtn);
+
+				if (!isMe) {
+					actions.appendChild(mkBtn(u.enabled ? 'Disable' : 'Enable',
+						u.enabled ? 'danger' : '', () => toggleEnabled(u)));
+				}
+				if (u.mfaEnabled) {
+					actions.appendChild(mkBtn('Reset 2FA', 'danger', () => resetMfa(u)));
+				}
+				tbody.appendChild(tr);
+			}
+		}
+
+		function mkBtn(label, extra, onClick) {
+			const b = document.createElement('button');
+			b.className = 'btn btn-sm' + (extra ? ' ' + extra : '');
+			b.textContent = label;
+			b.addEventListener('click', onClick);
+			return b;
+		}
+
+		async function load() {
+			try {
+				render(await api(''));
+			} catch (e) {
+				alertBox(false, e.message);
+			}
+		}
+
+		async function toggleEnabled(u) {
+			const verb = u.enabled ? 'Disable' : 'Enable';
+			if (!confirm(verb + ' account "' + u.username + '"?')) return;
+			try {
+				await api('/' + encodeURIComponent(u.username) + '/toggle-enabled', { method: 'POST' });
+				alertBox(true, 'Account "' + u.username + '" ' + (u.enabled ? 'disabled' : 'enabled') + '.');
+				load();
+			} catch (e) { alertBox(false, e.message); }
+		}
+
+		async function resetMfa(u) {
+			if (!confirm('Reset two-factor authentication for "' + u.username + '"?\n\nThe user will be able to enroll a new authenticator from Settings.')) return;
+			try {
+				await api('/' + encodeURIComponent(u.username) + '/mfa-reset', { method: 'POST' });
+				alertBox(true, '2FA reset for "' + u.username + '".');
+				load();
+			} catch (e) { alertBox(false, e.message); }
+		}
+
+		async function editRoles(u) {
+			const current = (u.roles || []).join(',');
+			const input = prompt(
+				'Roles for "' + u.username + '" (comma separated: USER, ADMIN, SERVICE):', current);
+			if (input == null) return;
+			const roles = input.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+			try {
+				await api('/' + encodeURIComponent(u.username) + '/roles', {
+					method: 'POST',
+					body: JSON.stringify({ roles })
+				});
+				alertBox(true, 'Roles of "' + u.username + '" set to ' + roles.join(', ') + '.');
+				load();
+			} catch (e) { alertBox(false, e.message); }
+		}
+
+		document.getElementById('createForm').addEventListener('submit', async (ev) => {
+			ev.preventDefault();
+			const roles = Array.from(document.querySelectorAll('input[name="cRole"]:checked'))
+				.map(c => c.value);
+			try {
+				const u = await api('', {
+					method: 'POST',
+					body: JSON.stringify({
+						name: document.getElementById('cName').value,
+						username: document.getElementById('cUsername').value,
+						email: document.getElementById('cEmail').value,
+						roles
+					})
+				});
+				alertBox(true, 'User "' + u.username + '" created - it can now log in with a magic link sent to ' + u.email + '.');
+				ev.target.reset();
+				load();
+			} catch (e) { alertBox(false, e.message); }
+		});
+
+		document.addEventListener('DOMContentLoaded', load);
+	</script>
+</body>
+</html>

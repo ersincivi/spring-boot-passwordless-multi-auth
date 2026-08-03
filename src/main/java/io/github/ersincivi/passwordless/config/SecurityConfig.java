@@ -275,7 +275,9 @@ public class SecurityConfig {
             // 2. MagicLink authentication filter (LSP-compliant)
             MagicLinkAuthenticationFilter magicLinkAuthenticationFilter,
             // 3. TOTP enforcement filter
-            TotpFilter totpFilter)
+            TotpFilter totpFilter,
+            // Eager Redis key removal on logout (lazy deletion leaves orphans)
+            io.github.ersincivi.passwordless.security.RedisSessionCleanupLogoutHandler redisSessionCleanupLogoutHandler)
             throws Exception {
 
         http
@@ -404,6 +406,7 @@ public class SecurityConfig {
                 .exceptionHandling(e -> e
                     .authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")))
                 .logout(logout -> logout
+                    .addLogoutHandler(redisSessionCleanupLogoutHandler)
                     .logoutSuccessHandler(logoutSuccessHandler)
                     .invalidateHttpSession(true)
                     .clearAuthentication(true)

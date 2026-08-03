@@ -73,7 +73,7 @@ app:
     secure-cookies: false        # T5.1: enable in production (HTTPS only)
     referrer-policy: NO_REFERRER # T5.1: ORIGIN_WHEN_CROSS_ORIGIN in production
   monitoring:
-    token: ""                    # T5.2: Bearer token for Prometheus scrapes (blank = disabled)
+    token: ${MONITORING_TOKEN:} # T5.2: Bearer token for Prometheus scrapes (blank = disabled)
   magiclink:
     web:
       ttl-seconds: 120  # 2 minutes for web

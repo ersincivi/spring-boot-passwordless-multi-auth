@@ -56,9 +56,6 @@ if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_mailpit .
     echo -e "${GREEN}✅ Mailpit: http://localhost:8025${NC}"
 fi
 
-if docker ps --format "{{.Names}} {{.Status}}" | grep -q "passwordless_elasticsearch_head .*Up"; then
-    echo -e "${GREEN}✅ Elasticsearch Head: http://localhost:9101${NC}"
-fi
 
 echo ""
 echo -e "${BLUE}🔧 Quick Management Commands:${NC}"

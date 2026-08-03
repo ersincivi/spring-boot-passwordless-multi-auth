@@ -101,7 +101,7 @@ passwords, because nothing here has one.
 
 ## 🌐 Logging in (web)
 
-1. Go to <http://localhost:8585/login> and enter `admin@example.com`.
+1. Go to <http://localhost:8585/login> and enter `admin@example.com` or `user@example.com`.
 2. Choose **magic link** or **OTP** — either way an e-mail is sent.
 3. The mail never leaves your machine: open **Mailpit** at
    <http://localhost:8025>, the message is already there.
@@ -255,13 +255,16 @@ separation is the point of the project.
 
 | Tool | URL | |
 |---|---|---|
-| Grafana | <http://localhost:3000> | pre-provisioned auth & JVM dashboards |
+| Grafana | <http://localhost:3000> | pre-provisioned auth & JVM dashboards — `admin` / `GRAFANA_ADMIN_PASSWORD` from `.env` |
 | Prometheus | <http://localhost:9090> | scrapes `/actuator/prometheus` (Bearer token) |
 | Kibana | <http://localhost:5601> | structured security-event logs, ready-made queries |
 | Mailpit | <http://localhost:8025> | every outgoing mail, locally |
 
-Details, custom metrics and the grok patterns:
-[`docs/monitoring.md`](docs/monitoring.md).
+For the app's own scrape target, mirror `MONITORING_TOKEN` into the
+git-ignored token file Prometheus reads
+(`printf '%s' "$MONITORING_TOKEN" > monitoring/monitoring-token`) — without
+it the two application jobs show as DOWN. Details, custom metrics and the
+grok patterns: [`docs/monitoring.md`](docs/monitoring.md).
 
 ## 📚 Documentation
 

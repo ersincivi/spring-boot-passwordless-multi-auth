@@ -1,0 +1,4 @@
+# Pipeline definitions - our mounted config dir masks the image default,
+# so this file must exist here.
+- pipeline.id: main
+  path.config: "/usr/share/logstash/pipeline"

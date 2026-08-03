@@ -25,7 +25,9 @@ scrape_configs:
     # scrape auth uses the static Bearer token set as MONITORING_TOKEN on the app.
     authorization:
       type: Bearer
-      credentials: 'CHANGE_ME'  # same value as MONITORING_TOKEN on the app; supply via credentials_file or a deploy-time template
+      # The token file is git-ignored; put the same value as MONITORING_TOKEN
+      # (from .env) into monitoring/monitoring-token before starting the stack.
+      credentials_file: /etc/prometheus/monitoring-token
     
   # Prometheus itself
   - job_name: 'prometheus'
@@ -61,4 +63,6 @@ scrape_configs:
     # T5.2: Bearer token auth - same value as MONITORING_TOKEN on the app
     authorization:
       type: Bearer
-      credentials: 'CHANGE_ME'  # same value as MONITORING_TOKEN on the app; supply via credentials_file or a deploy-time template
+      # The token file is git-ignored; put the same value as MONITORING_TOKEN
+      # (from .env) into monitoring/monitoring-token before starting the stack.
+      credentials_file: /etc/prometheus/monitoring-token

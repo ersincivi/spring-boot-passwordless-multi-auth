@@ -22,8 +22,8 @@ log.level: info
 path.logs: /usr/share/logstash/logs
 
 # Monitoring
-xpack.monitoring.enabled: true
-xpack.monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
+monitoring.enabled: true
+monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
 
 # Performance tuning
 config.reload.automatic: true

@@ -79,8 +79,8 @@ while ! curl -s "http://localhost:9200/_cluster/health?wait_for_status=yellow&ti
 done
 echo -e "${GREEN}✅ Elasticsearch started!${NC}"
 echo ""
-echo -e "${BLUE}📊 Phase 5: Starting ELK Stack (logstash, kibana, filebeat, elasticsearch-head)...${NC}"
-${COMPOSE} up -d logstash kibana filebeat elasticsearch-head
+echo -e "${BLUE}📊 Phase 5: Starting ELK Stack (logstash, kibana, filebeat)...${NC}"
+${COMPOSE} up -d logstash kibana filebeat
 
 echo -e "${YELLOW}⏳ Waiting for Kibana...${NC}"
 timeout=300
@@ -232,7 +232,6 @@ echo ""
 echo "   🔍 Log Analysis:"
 echo "      • Kibana: http://localhost:5601"
 echo "      • Elasticsearch: http://localhost:9200"
-echo "      • Elasticsearch Head: http://localhost:9101"
 echo "      • Logstash: http://localhost:9600"
 echo ""
 echo -e "${BLUE}🔧 Management Commands:${NC}"

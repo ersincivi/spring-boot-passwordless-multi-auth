@@ -35,7 +35,12 @@ The endpoint is **not public** — Prometheus authenticates with a static Bearer
 token. Set the same value in two places:
 
 1. `MONITORING_TOKEN` in your `.env`
-2. `monitoring/prometheus.yml` (the scrape job's credentials)
+2. the git-ignored file `monitoring/monitoring-token`, which the scrape jobs
+   read via `credentials_file`:
+
+   ```bash
+   printf '%s' "$MONITORING_TOKEN" > monitoring/monitoring-token
+   ```
 
 Besides the standard JVM/HTTP metrics, the app registers custom counters in
 `config/MetricsConfig.java` — `application.login.attempts`,

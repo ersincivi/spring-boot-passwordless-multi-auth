@@ -195,11 +195,8 @@ public class AdminMonitoringController {
     private Map<String, Object> getHealthStatus() {
         Map<String, Object> health = new HashMap<>();
         try {
-            // TODO: Spring Boot 4 - Re-enable healthEndpoint
-            // var healthInfo = healthEndpoint.health();
-            // health.put("status", healthInfo.getStatus().getCode());
-            health.put("status", "UP");
-            // Simple health status without detailed components
+            // Derived from live DB + Redis probes, not hardcoded
+            health.put("status", isHealthy() ? "UP" : "DOWN");
             health.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         } catch (Exception e) {
             health.put("status", "DOWN");
@@ -279,7 +276,7 @@ public class AdminMonitoringController {
             // Add fallback metrics if helpers fail
             appMetrics.put("httpRequests", Map.of("totalRequests", "N/A", "averageResponseTime", "N/A"));
             appMetrics.put("databaseMetrics", Map.of("activeConnections", "N/A", "maxConnections", "N/A"));
-            appMetrics.put("redisMetrics", Map.of("operations", "N/A", "averageLatency", "N/A"));
+            appMetrics.put("redisMetrics", Map.of("activeSessions", "N/A", "pingLatencyMs", "N/A"));
         }
         
         return appMetrics;
@@ -364,28 +361,130 @@ public class AdminMonitoringController {
     }
 
     // Placeholder methods for metrics (would be implemented with actual metric collection)
-    private int getActiveUserCount() { return 42; } // Would count active sessions
-    private int getDatabaseConnectionCount() { return 8; } // Would query connection pool
-    private int getActiveConnections() { return 15; } // Would count active HTTP connections
-    private long measureDatabaseResponseTime() { return 12; } // Would measure actual DB response
-    private boolean isHealthy() { return true; } // Would check overall health
-    private double getAverageResponseTime() { return 125.5; } // Would calculate from metrics
-    private double getRequestsPerSecond() { return 15.2; } // Would calculate from request counters
-    private double getErrorRate() { return 0.1; } // Would calculate error percentage
-    private long getUptimeSeconds() { return System.currentTimeMillis() / 1000; } // Application uptime
+    /**
+     * Authenticated sessions, counted via Spring Session's principal-name index
+     * (cleaned immediately on logout; excludes anonymous and lazily-deleted
+     * session hashes that a raw sessions:* scan would overcount).
+     */
+    private int getActiveUserCount() {
+        try {
+            long sessions = 0;
+            java.util.Set<String> indexKeys =
+                    redisTemplate.keys("spring:session:index:*PRINCIPAL_NAME_INDEX_NAME:*");
+            if (indexKeys != null) {
+                for (String key : indexKeys) {
+                    Long size = redisTemplate.opsForSet().size(key);
+                    sessions += size != null ? size : 0;
+                }
+            }
+            return (int) sessions;
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /** Active connections in the Hikari pool (via its Micrometer gauge). */
+    private int getDatabaseConnectionCount() {
+        return (int) gaugeValue("hikaricp.connections.active", -1);
+    }
+
+    /** Busy Tomcat worker threads = requests being processed right now. */
+    private int getActiveConnections() {
+        return (int) gaugeValue("tomcat.threads.busy", -1);
+    }
+
+    /** Actually measured: round-trip of a validation query on a pooled connection. */
+    private long measureDatabaseResponseTime() {
+        try (Connection conn = dataSource.getConnection()) {
+            long start = System.nanoTime();
+            conn.isValid(2);
+            return Math.max(1, (System.nanoTime() - start) / 1_000_000);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    private boolean isHealthy() {
+        return "UP".equals(checkDatabaseHealth().get("status"))
+                && "UP".equals(checkRedisHealth().get("status"));
+    }
+
+    private io.micrometer.core.instrument.Timer httpTimer() {
+        return meterRegistry.find("http.server.requests").timer();
+    }
+
+    /** Mean HTTP response time in ms, from the Micrometer request timer. */
+    private double getAverageResponseTime() {
+        io.micrometer.core.instrument.Timer t = httpTimer();
+        return t != null ? round1(t.mean(java.util.concurrent.TimeUnit.MILLISECONDS)) : 0.0;
+    }
+
+    /** Requests handled per second since startup. */
+    private double getRequestsPerSecond() {
+        io.micrometer.core.instrument.Timer t = httpTimer();
+        long up = Math.max(1, getUptimeSeconds());
+        return t != null ? round1((double) t.count() / up) : 0.0;
+    }
+
+    /** Percentage of requests that answered with a 5xx status. */
+    private double getErrorRate() {
+        double total = 0, errors = 0;
+        for (io.micrometer.core.instrument.Timer t :
+                Search.in(meterRegistry).name("http.server.requests").timers()) {
+            total += t.count();
+            String status = t.getId().getTag("status");
+            if (status != null && status.startsWith("5")) {
+                errors += t.count();
+            }
+        }
+        return total > 0 ? round1(errors / total * 100.0) : 0.0;
+    }
+
+    /** JVM uptime - not wall-clock time. */
+    private long getUptimeSeconds() {
+        return java.lang.management.ManagementFactory.getRuntimeMXBean().getUptime() / 1000;
+    }
 
     private Map<String, Object> getHttpRequestMetrics() {
-        // Would collect HTTP request metrics from Micrometer
-        return Map.of("totalRequests", 1234, "averageResponseTime", 125.5);
+        io.micrometer.core.instrument.Timer t = httpTimer();
+        long count = 0;
+        double max = 0;
+        for (io.micrometer.core.instrument.Timer each :
+                Search.in(meterRegistry).name("http.server.requests").timers()) {
+            count += each.count();
+            max = Math.max(max, each.max(java.util.concurrent.TimeUnit.MILLISECONDS));
+        }
+        return Map.of(
+                "totalRequests", count,
+                "averageResponseTime", getAverageResponseTime(),
+                "maxResponseTime", round1(max));
     }
 
     private Map<String, Object> getDatabaseMetrics() {
-        // Would collect database connection pool metrics
-        return Map.of("activeConnections", 8, "maxConnections", 20);
+        return Map.of(
+                "activeConnections", (int) gaugeValue("hikaricp.connections.active", -1),
+                "idleConnections", (int) gaugeValue("hikaricp.connections.idle", -1),
+                "maxConnections", (int) gaugeValue("hikaricp.connections.max", -1));
     }
 
     private Map<String, Object> getRedisMetrics() {
-        // Would collect Redis operation metrics
-        return Map.of("operations", 567, "averageLatency", 2.1);
+        long latency;
+        try {
+            long start = System.nanoTime();
+            redisTemplate.opsForValue().get("health:probe");
+            latency = Math.max(1, (System.nanoTime() - start) / 1_000_000);
+        } catch (Exception e) {
+            latency = -1;
+        }
+        return Map.of("pingLatencyMs", latency, "activeSessions", getActiveUserCount());
+    }
+
+    private double gaugeValue(String name, double fallback) {
+        io.micrometer.core.instrument.Gauge g = meterRegistry.find(name).gauge();
+        return g != null ? g.value() : fallback;
+    }
+
+    private static double round1(double v) {
+        return Math.round(v * 10.0) / 10.0;
     }
 }

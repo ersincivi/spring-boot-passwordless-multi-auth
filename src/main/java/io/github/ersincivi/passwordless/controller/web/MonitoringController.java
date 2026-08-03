@@ -111,23 +111,22 @@ public class MonitoringController {
     }
 
     /**
-     * Prometheus metrics endpoint as documented in MONITORING_GUIDE.md
-     * This is the endpoint mentioned at /monitor/prometheus
-     * Requires ADMIN role as documented
+     * Prometheus metrics endpoint as documented in MONITORING_GUIDE.md.
+     * Access is enforced by the URL rule in SecurityConfig (T5.2:
+     * MONITORING_TOKEN Bearer token OR an authenticated ADMIN) - a method-level
+     * hasRole('ADMIN') here would override that rule and 403 the scraper.
      */
     @GetMapping(value = "/prometheus", produces = MediaType.TEXT_PLAIN_VALUE)
-    @PreAuthorize("hasRole('ADMIN')")
     public String prometheusMetrics() {
         // Redirect to actuator endpoint since we don't have direct PrometheusMeterRegistry access
         return "redirect:/actuator/prometheus";
     }
 
     /**
-     * Metrics endpoint for admin users
-     * Requires ADMIN role as documented
+     * Metrics pointer endpoint. Same T5.2 access rule as /monitor/prometheus,
+     * enforced at the URL level in SecurityConfig.
      */
     @GetMapping("/metrics")
-    @PreAuthorize("hasRole('ADMIN')")
     @ResponseBody
     public Map<String, Object> metrics() {
         Map<String, Object> metrics = new HashMap<>();

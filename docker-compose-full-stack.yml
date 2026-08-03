@@ -94,6 +94,7 @@ services:
       - "9090:9090"
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/monitoring-token:/etc/prometheus/monitoring-token:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -169,7 +170,7 @@ services:
   
   # Elasticsearch - Search and analytics engine
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.19.19
     container_name: passwordless_elasticsearch
     environment:
       - "discovery.type=single-node"
@@ -201,11 +202,10 @@ services:
 
   # Logstash - Data processing pipeline
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.13.4
+    image: docker.elastic.co/logstash/logstash:8.19.19
     container_name: passwordless_logstash
     environment:
       - "LS_JAVA_OPTS=-Xmx768m -Xms768m"
-      - "PIPELINE_WORKERS=2"
     ports:
       - "5044:5044"    # Beats input
       - "5000:5000/tcp" # TCP input
@@ -230,13 +230,12 @@ services:
 
   # Kibana - Data visualization and exploration
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.13.4
+    image: docker.elastic.co/kibana/kibana:8.19.19
     container_name: passwordless_kibana
     environment:
       - "ELASTICSEARCH_HOSTS=http://elasticsearch:9200"
       - "SERVER_NAME=passwordless-kibana"
       - "SERVER_HOST=0.0.0.0"
-      - "XPACK_MONITORING_ENABLED=true"
       - "XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY=a7a6311933d3503b89bc2dbc36572c33a7a6311933d3503b"
     ports:
       - "5601:5601"
@@ -259,7 +258,7 @@ services:
 
   # Filebeat - Log shipping agent
   filebeat:
-    image: docker.elastic.co/beats/filebeat:8.13.4
+    image: docker.elastic.co/beats/filebeat:8.19.19
     container_name: passwordless_filebeat
     user: root
     environment:
@@ -276,22 +275,11 @@ services:
         condition: service_healthy
       passwordless-app:
         condition: service_started
-    command: ["filebeat", "-e", "-strict.perms=false"]
+    command: ["filebeat", "-e", "--strict.perms=false"]
     networks:
       - passwordless_network
     restart: unless-stopped
 
-  # Elasticsearch Head - Web front end for browsing and interacting with an Elasticsearch cluster
-  elasticsearch-head:
-    image: mobz/elasticsearch-head:5
-    container_name: passwordless_elasticsearch_head
-    ports:
-      - "9101:9100" # host 9100 is taken by node-exporter
-    depends_on:
-      - elasticsearch
-    networks:
-      - passwordless_network
-    restart: unless-stopped
 
 volumes:
   postgres_data:
